@@ -25,6 +25,7 @@ export default async function MajorDetailPage({
   const plan = getFirstYearPlan(spec, view);
   const averages = await getWinterAverages([
     ...codesFromPlan(plan),
+    "WRDS 150",
     ...(view.scienceOneAlt ? ["SCIE 001"] : []),
   ]);
 
@@ -45,12 +46,17 @@ export default async function MajorDetailPage({
         </p>
         <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-5xl">{spec.name}</h1>
         <p className="mt-4 text-lg leading-8 text-[var(--muted)]">
-          Big list of what to actually take this year. Yellow stickers are last winter’s class
-          average — tap one to open UBC Grades.
+          First-year courses live at the top. Build Term 1 and Term 2 at the bottom — AP credit
+          counts toward the bar. Yellow stickers are last winter’s class average.
         </p>
       </header>
 
-      <MajorCoursePlan plan={plan} scienceOne={view.scienceOneAlt} averages={averages} />
+      <MajorCoursePlan
+        specId={spec.id}
+        plan={plan}
+        scienceOne={view.scienceOneAlt}
+        averages={averages}
+      />
 
       {spec.notes.length > 0 && (
         <section className="rounded-[28px] border-2 border-[#142033] bg-white p-6 shadow-[4px_4px_0_#142033]">

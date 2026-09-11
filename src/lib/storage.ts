@@ -1,4 +1,4 @@
-import type { ApState, CalculatorCourse, PlannerState } from "./types";
+import type { ApState, CalculatorCourse, PlannerState, TermPlan } from "./types";
 
 const CALC_KEY = "usp.calculator";
 const PLAN_KEY = "usp.planner";
@@ -47,4 +47,17 @@ export function loadApExams(): string[] {
 
 export function saveApExams(exams: string[]) {
   localStorage.setItem(AP_KEY, JSON.stringify({ exams } satisfies ApState));
+}
+
+const TERM_KEY = "usp.termplan";
+
+export function loadTermPlan(specId: string): TermPlan {
+  const all = readJson<Record<string, TermPlan>>(TERM_KEY, {});
+  return all[specId] ?? { term1: [], term2: [] };
+}
+
+export function saveTermPlan(specId: string, plan: TermPlan) {
+  const all = readJson<Record<string, TermPlan>>(TERM_KEY, {});
+  all[specId] = plan;
+  localStorage.setItem(TERM_KEY, JSON.stringify(all));
 }

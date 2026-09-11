@@ -1,11 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  coursesCoveredByExams,
-  examCovering,
-  relevantApExams,
-} from "@/lib/ap-credit";
+import { useEffect, useState } from "react";
+import { coursesCoveredByExams, examCovering } from "@/lib/ap-credit";
 import { courseByCode } from "@/lib/catalog";
 import {
   alternativeCovered,
@@ -16,14 +12,17 @@ import {
 import { round1 } from "@/lib/grades";
 import { loadApExams, saveApExams } from "@/lib/storage";
 import { ubcGradesUrl, type WinterAverage } from "@/lib/ubcgrades";
+import { YearPlanner } from "@/components/YearPlanner";
 
 type Averages = Record<string, WinterAverage | null>;
 
 export function MajorCoursePlan({
+  specId,
   plan,
   scienceOne,
   averages,
 }: {
+  specId: string;
   plan: FirstYearPlan;
   scienceOne: boolean;
   averages: Averages;
@@ -41,59 +40,15 @@ export function MajorCoursePlan({
     saveApExams(exams);
   }, [exams, hydrated]);
 
-  const pageCodes = useMemo(() => {
-    const codes: string[] = scienceOne ? ["SCIE 001"] : [];
-    for (const row of plan.rows) {
-      if (row.kind !== "courses") continue;
-      for (const alt of row.alternatives) codes.push(...alt);
-    }
-    return [...new Set(codes)];
-  }, [plan, scienceOne]);
-
-  const apOptions = relevantApExams(pageCodes);
-  const covered = coursesCoveredByExams(exams);
+  const covered = coursesCoveredByExams(hydrated ? exams : []);
   const extras = plan.rows.filter((row) => row.kind !== "courses");
 
-  function toggle(id: string) {
+  function toggleExam(id: string) {
     setExams((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
   }
 
   return (
     <div className="space-y-10">
-      {apOptions.length > 0 && (
-        <section>
-          <p className="text-sm font-semibold text-[#8a7018]">Got AP?</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight">Tap the exams you already wrote.</h2>
-          <p className="mt-2 max-w-2xl text-base leading-7 text-[var(--muted)]">
-            Score of 4 or 5. We’ll grey out the matching courses. Always check Workday — you can
-            still take the UBC course if you want to.
-          </p>
-          <ul className="mt-5 flex flex-wrap gap-3">
-            {apOptions.map((exam) => {
-              const on = exams.includes(exam.id);
-              return (
-                <li key={exam.id}>
-                  <button
-                    type="button"
-                    onClick={() => toggle(exam.id)}
-                    className={`rounded-full border-2 px-4 py-2 text-left text-base font-semibold shadow-[3px_3px_0_#142033] transition ${
-                      on
-                        ? "border-[#142033] bg-[#f2d45c]"
-                        : "border-[#142033] bg-white hover:bg-[#fff6c8]"
-                    }`}
-                  >
-                    {exam.name}
-                    <span className="mt-0.5 block text-xs font-normal leading-4 text-[var(--muted)]">
-                      {exam.detail}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-
       {scienceOne && (
         <div className="rounded-[28px] border-2 border-[#142033] bg-[#fff1a8] px-5 py-4 shadow-[4px_4px_0_#142033]">
           <p className="text-lg font-bold">In Science One?</p>
@@ -132,7 +87,7 @@ export function MajorCoursePlan({
                 row={row}
                 averages={averages}
                 covered={covered}
-                examIds={exams}
+                examIds={hydrated ? exams : []}
                 step={index + 1}
               />
             ))}
@@ -159,6 +114,8 @@ export function MajorCoursePlan({
           , latest winter on file — not admission cutoffs.
         </p>
       </section>
+
+      <YearPlanner specId={specId} plan={plan} exams={exams} onToggleExam={toggleExam} />
     </div>
   );
 }

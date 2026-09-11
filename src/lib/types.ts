@@ -51,3 +51,8 @@ export type PlannerState = {
 export type ApState = {
   exams: string[];
 };
+
+export type TermPlan = {
+  term1: string[];
+  term2: string[];
+};
