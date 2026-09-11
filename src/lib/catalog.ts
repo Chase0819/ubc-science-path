@@ -1,0 +1,46 @@
+import type { CatalogCourse } from "./types";
+
+export const CATALOG: CatalogCourse[] = [
+  { code: "SCIE 001", title: "Science One", credits: 27, tags: ["scie001"] },
+  { code: "SCIE 113", title: "First-Year Seminar in Science", credits: 3, tags: ["comms"] },
+  { code: "WRDS 150", title: "Writing and Research in the Disciplines", credits: 3, tags: ["comms"] },
+  { code: "MATH 100", title: "Differential Calculus", credits: 3, tags: ["math"] },
+  { code: "MATH 110", title: "Differential Calculus (extended)", credits: 6, tags: ["math"] },
+  { code: "MATH 120", title: "Honours Differential Calculus", credits: 4, tags: ["math"] },
+  { code: "MATH 180", title: "Differential Calculus with Physical Applications", credits: 4, tags: ["math"] },
+  { code: "MATH 101", title: "Integral Calculus", credits: 3, tags: ["math"] },
+  { code: "MATH 121", title: "Honours Integral Calculus", credits: 4, tags: ["math"] },
+  { code: "CHEM 111", title: "Structure, Bonding and Equilibrium", credits: 4, tags: ["chem"] },
+  { code: "CHEM 121", title: "Structure and Bonding in Chemistry", credits: 4, tags: ["chem"] },
+  { code: "CHEM 141", title: "Structure and Bonding (enriched)", credits: 4, tags: ["chem"] },
+  { code: "CHEM 123", title: "Thermodynamics, Kinetics and Organic Chemistry", credits: 4, tags: ["chem"] },
+  { code: "BIOL 111", title: "Introduction to Modern Biology", credits: 3, tags: ["biol"] },
+  { code: "BIOL 112", title: "Biology of the Cell", credits: 3, tags: ["biol"] },
+  { code: "BIOL 121", title: "Genetics, Evolution and Ecology", credits: 3, tags: ["biol"] },
+  { code: "BIOL 140", title: "Laboratory Investigations in Life Science", credits: 2, tags: ["biol"] },
+  { code: "PHYS 100", title: "Introductory Physics", credits: 3, tags: ["phys"] },
+  { code: "PHYS 108", title: "Enriched Physics II", credits: 3, tags: ["phys"] },
+  { code: "PHYS 117", title: "Dynamics and Waves", credits: 3, tags: ["phys"] },
+  { code: "PHYS 118", title: "Electricity, Light and Radiation", credits: 3, tags: ["phys"] },
+  { code: "PHYS 119", title: "Experimental Physics Lab", credits: 1, tags: ["phys"] },
+  { code: "PHYS 131", title: "Energy and Waves", credits: 3, tags: ["phys"] },
+  { code: "PHYS 157", title: "Introductory Physics for Engineers I", credits: 3, tags: ["phys"] },
+  { code: "PHYS 158", title: "Introductory Physics for Engineers II", credits: 3, tags: ["phys"] },
+  { code: "PHYS 159", title: "Introductory Physics Laboratory", credits: 1, tags: ["phys"] },
+  { code: "CPSC 103", title: "Introduction to Systematic Program Design", credits: 3, tags: ["cpsc"] },
+  { code: "CPSC 107", title: "Systematic Program Design", credits: 3, tags: ["cpsc"] },
+  { code: "CPSC 110", title: "Computation, Programs, and Programming", credits: 4, tags: ["cpsc"] },
+  { code: "CPSC 121", title: "Models of Computation", credits: 4, tags: ["cpsc"] },
+  { code: "DSCI 100", title: "Introduction to Data Science", credits: 3, tags: ["dsci", "stat"] },
+  { code: "STAT 200", title: "Elementary Statistics for Applications", credits: 3, tags: ["stat"] },
+  { code: "ECON 101", title: "Principles of Microeconomics", credits: 3, tags: ["econ"] },
+  { code: "ECON 102", title: "Principles of Macroeconomics", credits: 3, tags: ["econ"] },
+  { code: "EOSC 110", title: "The Solid Earth", credits: 3, tags: ["eosc"] },
+  { code: "EOSC 112", title: "The Fluid Earth", credits: 3, tags: ["eosc"] },
+  { code: "PSYC 101", title: "Introduction to Biological and Cognitive Psychology", credits: 3, tags: ["psyc"] },
+  { code: "LING 100", title: "Introduction to Language and Linguistics", credits: 3, tags: ["ling"] },
+];
+
+export function courseByCode(code: string): CatalogCourse | undefined {
+  return CATALOG.find((c) => c.code === code);
+}
