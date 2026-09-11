@@ -162,9 +162,9 @@ export default function Home() {
               Start from the major you might declare — then work backward to Term 1.
             </h2>
             <p className="mt-4 text-[15px] leading-7 text-[var(--muted)]">
-              Different specializations ask for different first-year pieces. The planner does
-              not dump a giant course catalog. You rank up to three programs, tick what you
-              will finish by April, and see what is still missing for each choice.
+              Different specializations ask for different first-year pieces. Open a major to
+              see only the eligibility courses you must finish by the end of Winter Session —
+              not a giant course catalog.
             </p>
             <ul className="mt-6 space-y-4">
               {paths.map((path) => (

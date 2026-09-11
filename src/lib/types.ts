@@ -25,6 +25,7 @@ export type CatalogCourse = {
   title: string;
   credits: number;
   tags: string[];
+  blurb: string;
 };
 
 export type GradeComponent = {

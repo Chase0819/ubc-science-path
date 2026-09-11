@@ -6,8 +6,8 @@ export default function PlannerPage() {
       <header className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight">Course planner</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Eligibility courses must be done by the end of Winter Session. Calendar “Year 1”
-          lists are longer and do not all have to be finished before you apply.
+          Choose a specialization to see the eligibility courses you must finish by the end of
+          Winter Session.
         </p>
       </header>
       <CoursePlanner />

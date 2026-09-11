@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { predictAdmission } from "@/lib/admission-model";
 import { gpaFromPercent, round1, round2 } from "@/lib/grades";
 import { SPECIALIZATIONS } from "@/lib/specializations";
@@ -16,6 +17,7 @@ const bandStyles: Record<string, string> = {
 };
 
 export function AdmissionOutlook() {
+  const searchParams = useSearchParams();
   const [specId, setSpecId] = useState("cpsc");
   const [sessional, setSessional] = useState(78);
   const [completed, setCompleted] = useState<string[]>([]);
@@ -23,10 +25,15 @@ export function AdmissionOutlook() {
   useEffect(() => {
     const planner = loadPlanner();
     const savedAvg = loadSessional();
-    if (planner.intended[0]) setSpecId(planner.intended[0]);
+    const fromQuery = searchParams.get("major");
+    if (fromQuery && SPECIALIZATIONS.some((s) => s.id === fromQuery)) {
+      setSpecId(fromQuery);
+    } else if (planner.intended[0]) {
+      setSpecId(planner.intended[0]);
+    }
     if (savedAvg !== null) setSessional(savedAvg);
     setCompleted(planner.completed);
-  }, []);
+  }, [searchParams]);
 
   const spec = SPECIALIZATIONS.find((s) => s.id === specId) ?? SPECIALIZATIONS[0];
   const outlook = useMemo(
@@ -69,7 +76,7 @@ export function AdmissionOutlook() {
       <p className="text-sm text-[var(--muted)]">
         Approximate 4.33 GPA for {round1(sessional)}% is{" "}
         <strong className="text-[var(--ink)]">{round2(gpa).toFixed(2)}</strong>. Placement
-        uses percent, not GPA. Courses already ticked in the planner are used for eligibility.
+        uses percent, not GPA.
       </p>
 
       <section
