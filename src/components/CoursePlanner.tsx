@@ -14,35 +14,29 @@ export function CoursePlanner() {
 
   return (
     <div className="space-y-6">
-      <label className="grid max-w-xl gap-1 text-sm">
-        Search specializations
+      <label className="grid max-w-xl gap-2 text-base font-semibold">
+        Search
         <input
-          className="input"
+          className="input rounded-full border-2 border-[#142033] px-5 py-3 text-base shadow-[3px_3px_0_#142033]"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Computer Science, Biology, Neuroscience…"
         />
       </label>
-      <p className="text-sm text-[var(--muted)]">
-        Open a major to see the first-year courses you must finish before you can apply.
-      </p>
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <ul className="grid gap-4 sm:grid-cols-2">
         {filtered.map((spec) => (
           <li key={spec.id}>
             <Link
               href={`/planner/${spec.id}`}
               transitionTypes={["nav-forward"]}
-              className="block rounded-xl border border-[var(--line)] bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-[var(--navy)]"
+              className="block rounded-[28px] border-2 border-[#142033] bg-white px-5 py-5 text-left shadow-[4px_4px_0_#142033] transition hover:-translate-y-0.5 hover:bg-[#fff8dc]"
             >
-              <span className="font-medium">{spec.name}</span>
-              <p className="mt-1 text-xs text-[var(--muted)]">
+              <span className="text-xl font-bold tracking-tight">{spec.name}</span>
+              <p className="mt-2 text-sm font-medium text-[var(--muted)]">
                 {spec.kind.replace(/-/g, " ")}
-                {spec.quota ? " · limited seats" : " · no quota"}
-                {spec.umbrella ? ` · ${spec.umbrella.replace("-", " ")} umbrella` : ""}
+                {spec.quota ? " · limited seats" : " · open seats"}
               </p>
-              <p className="mt-3 text-sm font-medium text-[var(--navy)]">
-                See required courses →
-              </p>
+              <p className="mt-4 text-base font-bold">See first year →</p>
             </Link>
           </li>
         ))}

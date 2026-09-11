@@ -182,3 +182,21 @@ html {
 .btn-secondary {
   @apply rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-sm hover:bg-[var(--navy-soft)];
 }
+
+.planner-chill {
+  position: relative;
+}
+
+.planner-chill::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: -3rem -1rem auto auto;
+  height: 18rem;
+  width: 18rem;
+  border-radius: 999px;
+  background: #f2d45c;
+  opacity: 0.35;
+  filter: blur(8px);
+  z-index: -1;
+}

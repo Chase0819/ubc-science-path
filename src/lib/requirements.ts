@@ -94,6 +94,7 @@ export type CourseSlot = SimpleSlot | PathGroup;
 export type EligibilityView = {
   empty: boolean;
   scienceOneAlt: boolean;
+  noSubjectList: boolean;
   slots: CourseSlot[];
 };
 
@@ -146,16 +147,73 @@ function asSlots(req: Requirement): CourseSlot[] {
 
 export function eligibilityView(req: Requirement): EligibilityView {
   if (req.kind === "none") {
-    return { empty: true, scienceOneAlt: false, slots: [] };
+    return { empty: true, scienceOneAlt: false, noSubjectList: true, slots: [] };
   }
   if (req.kind === "or" && req.items[0]?.kind === "scie001") {
     return {
       empty: false,
       scienceOneAlt: true,
+      noSubjectList: false,
       slots: asSlots(req.items[1]),
     };
   }
-  return { empty: false, scienceOneAlt: false, slots: asSlots(req) };
+  return {
+    empty: false,
+    scienceOneAlt: false,
+    noSubjectList: false,
+    slots: asSlots(req),
+  };
+}
+
+const DIFF_CALC = ["MATH 100", "MATH 102", "MATH 104", "MATH 110", "MATH 120", "MATH 180", "MATH 184"];
+const INT_CALC = ["MATH 101", "MATH 103", "MATH 105", "MATH 121"];
+
+function hasFamily(slots: CourseSlot[], family: string[]): boolean {
+  return codesFromSlots(slots).some((code) => family.includes(code));
+}
+
+function codesFromSlots(slots: CourseSlot[]): string[] {
+  const codes: string[] = [];
+  for (const slot of slots) {
+    if (slot.kind === "simple") codes.push(...slot.courses);
+    else {
+      for (const path of slot.paths) {
+        for (const inner of path.slots) codes.push(...inner.courses);
+      }
+    }
+  }
+  return codes;
+}
+
+/** Official eligibility plus first-year calculus, which Science students almost always need before they apply. */
+export function applyView(req: Requirement): EligibilityView {
+  const view = eligibilityView(req);
+  const slots = [...view.slots];
+  if (!hasFamily(slots, DIFF_CALC)) {
+    slots.unshift({
+      kind: "simple",
+      chooseOne: true,
+      courses: DIFF_CALC,
+    });
+  }
+  if (!hasFamily(slots, INT_CALC)) {
+    const insertAt = hasFamily(slots, DIFF_CALC)
+      ? slots.findIndex(
+          (slot) =>
+            slot.kind === "simple" && slot.courses.some((code) => DIFF_CALC.includes(code)),
+        ) + 1
+      : 0;
+    slots.splice(Math.max(insertAt, 0), 0, {
+      kind: "simple",
+      chooseOne: true,
+      courses: INT_CALC,
+    });
+  }
+  return {
+    ...view,
+    empty: slots.length === 0,
+    slots,
+  };
 }
 
 export function codesFromView(view: EligibilityView): string[] {

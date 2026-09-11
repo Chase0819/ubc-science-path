@@ -47,3 +47,7 @@ export type PlannerState = {
   completed: string[];
   intended: string[];
 };
+
+export type ApState = {
+  exams: string[];
+};

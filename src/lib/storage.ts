@@ -1,4 +1,4 @@
-import type { CalculatorCourse, PlannerState } from "./types";
+import type { ApState, CalculatorCourse, PlannerState } from "./types";
 
 const CALC_KEY = "usp.calculator";
 const PLAN_KEY = "usp.planner";
@@ -37,4 +37,14 @@ export function loadSessional(): number | null {
 
 export function saveSessional(value: number) {
   localStorage.setItem(SESSIONAL_KEY, JSON.stringify(value));
+}
+
+const AP_KEY = "usp.ap";
+
+export function loadApExams(): string[] {
+  return readJson<ApState>(AP_KEY, { exams: [] }).exams;
+}
+
+export function saveApExams(exams: string[]) {
+  localStorage.setItem(AP_KEY, JSON.stringify({ exams } satisfies ApState));
 }
