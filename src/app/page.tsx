@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Reveal } from "@/components/Reveal";
 
 const yearPlan = [
   {
@@ -44,10 +45,10 @@ export default function Home() {
           fill
           priority
           sizes="(min-width: 80rem) 72rem, 100vw"
-          className="object-cover"
+          className="hero-zoom object-cover"
         />
         <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(20,32,51,0.88)_15%,rgba(20,32,51,0.55)_70%,rgba(20,32,51,0.25))]" />
-        <div className="relative z-10 flex min-h-[28rem] flex-col justify-end gap-6 px-6 py-10 sm:px-10">
+        <div className="hero-enter relative z-10 flex min-h-[28rem] flex-col justify-end gap-6 px-6 py-10 sm:px-10">
           <div className="flex items-center gap-3">
             <img src="/mark.svg" alt="" width={40} height={40} className="h-10 w-10 rounded-xl" />
             <div>
@@ -79,6 +80,7 @@ export default function Home() {
         </div>
       </section>
 
+      <Reveal>
       <section className="grid items-center gap-10 lg:grid-cols-2">
         <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-[var(--line)]">
           <Image
@@ -110,7 +112,9 @@ export default function Home() {
           </p>
         </div>
       </section>
+      </Reveal>
 
+      <Reveal>
       <section>
         <div className="max-w-3xl">
           <p className="text-sm font-medium uppercase tracking-[0.16em] text-[var(--gold)]">
@@ -141,7 +145,9 @@ export default function Home() {
           ))}
         </ol>
       </section>
+      </Reveal>
 
+      <Reveal>
       <section
         id="planner"
         className="scroll-mt-8 overflow-hidden rounded-3xl border border-[var(--line)] bg-white"
@@ -170,6 +176,7 @@ export default function Home() {
             </ul>
             <Link
               href="/planner"
+              transitionTypes={["nav-forward"]}
               className="mt-8 inline-flex rounded-full bg-[#f2d45c] px-5 py-2.5 text-sm font-medium text-[var(--ink)]"
             >
               Open the course planner
@@ -186,7 +193,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </Reveal>
 
+      <Reveal>
       <section
         id="calculator"
         className="scroll-mt-8 overflow-hidden rounded-3xl border border-[var(--line)] bg-white"
@@ -227,13 +236,16 @@ export default function Home() {
           </div>
           <Link
             href="/calculator"
+            transitionTypes={["nav-forward"]}
             className="mt-8 inline-flex rounded-full bg-[#c5e8c4] px-5 py-2.5 text-sm font-medium text-[var(--ink)]"
           >
             Open the grade calculator
           </Link>
         </div>
       </section>
+      </Reveal>
 
+      <Reveal>
       <section
         id="outlook"
         className="scroll-mt-8 overflow-hidden rounded-3xl border border-[var(--line)] bg-white"
@@ -259,6 +271,7 @@ export default function Home() {
             </p>
             <Link
               href="/outlook"
+              transitionTypes={["nav-forward"]}
               className="mt-8 inline-flex rounded-full bg-[#c62828] px-5 py-2.5 text-sm font-medium text-white"
             >
               Open major outlook
@@ -283,6 +296,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </Reveal>
     </div>
   );
 }

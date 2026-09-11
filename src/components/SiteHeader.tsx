@@ -44,9 +44,16 @@ export function SiteHeader() {
   const theme = headerTheme(pathname);
 
   return (
-    <header className={`border-b ${theme.bar}`}>
+    <header
+      className={`border-b transition-colors duration-500 ${theme.bar}`}
+      style={{ viewTransitionName: "site-header" }}
+    >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-        <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
+        <Link
+          href="/"
+          transitionTypes={["nav-back"]}
+          className="flex items-center gap-2.5 font-semibold tracking-tight"
+        >
           <img src="/mark.svg" alt="" width={32} height={32} className="h-8 w-8 rounded-lg" />
           UBC Science Path
         </Link>
@@ -60,6 +67,7 @@ export function SiteHeader() {
               <Link
                 key={link.href}
                 href={link.href}
+                transitionTypes={link.href === "/" ? ["nav-back"] : ["nav-forward"]}
                 className={`rounded-full px-3 py-1.5 ${theme.hover} ${on ? theme.active : ""}`}
               >
                 {link.label}
