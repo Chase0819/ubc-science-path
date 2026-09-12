@@ -29,6 +29,125 @@ html {
   scroll-behavior: smooth;
 }
 
+.ubc-rails {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Sits under the header, so the wavy edge is where the rail appears to start. */
+.ubc-rail {
+  position: fixed;
+  top: 0;
+  z-index: 14;
+  height: 100vh;
+  width: 1.5rem;
+  overflow: hidden;
+  transition:
+    background-color 500ms ease,
+    color 500ms ease;
+}
+
+.ubc-rail-left {
+  left: 0;
+}
+
+.ubc-rail-right {
+  right: 0;
+}
+
+.ubc-rail-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: ubc-rail-fall 22s linear infinite;
+}
+
+.ubc-rail-right .ubc-rail-track {
+  animation-duration: 26s;
+  animation-delay: -8s;
+}
+
+.ubc-rail-bead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 0;
+}
+
+.ubc-rail-sun {
+  display: block;
+  width: 0.82rem;
+  height: 0.82rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.5;
+  opacity: 0.7;
+}
+
+.ubc-rail-left .ubc-rail-sun {
+  transform: rotate(-90deg);
+}
+
+.ubc-rail-right .ubc-rail-sun {
+  transform: rotate(90deg);
+}
+
+.ubc-rail-word-wrap {
+  display: flex;
+  height: 3.4rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.ubc-rail-word {
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  line-height: 1;
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+.ubc-rail-left .ubc-rail-word {
+  transform: rotate(-90deg);
+}
+
+.ubc-rail-right .ubc-rail-word {
+  transform: rotate(90deg);
+}
+
+@keyframes ubc-rail-fall {
+  from {
+    transform: translate3d(0, -50%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.site-header {
+  position: relative;
+  z-index: 20;
+  view-transition-name: site-header;
+}
+
+.site-header-bar {
+  position: relative;
+  z-index: 1;
+  transition:
+    background-color 500ms ease,
+    color 500ms ease;
+}
+
+.site-header-wave {
+  display: block;
+  width: 100%;
+  height: 2.35rem;
+  margin-top: -1px;
+}
+
 .page-enter {
   animation: page-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -142,6 +261,37 @@ html {
   animation: 280ms ease both fade;
 }
 
+.major-suck-cover {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  background: var(--paper);
+  opacity: 0;
+}
+
+.major-suck-ghost {
+  overflow: hidden;
+  z-index: 16;
+  will-change: transform, opacity;
+}
+
+html.from-major-suck .page-enter {
+  animation: major-pop-in 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: var(--suck-ox, 50%) var(--suck-oy, 40%);
+}
+
+@keyframes major-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 ::view-transition-group(site-header) {
   animation: none;
   z-index: 100;
@@ -163,11 +313,17 @@ html {
   .page-enter,
   .hero-enter,
   .hero-zoom,
-  .reveal {
+  .reveal,
+  .ubc-rail-track,
+  html.from-major-suck .page-enter {
     animation: none;
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  .ubc-rails {
+    display: none;
   }
 }
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackToMajors } from "@/components/BackToMajors";
 import { MajorCoursePlan } from "@/components/MajorCoursePlan";
 import { MajorMark } from "@/components/MajorMark";
 import { codesFromPlan, getFirstYearPlan } from "@/lib/first-year-plans";
@@ -32,13 +33,7 @@ export default async function MajorDetailPage({
 
   return (
     <div className="planner-chill space-y-8">
-      <Link
-        href="/planner"
-        transitionTypes={["nav-back"]}
-        className="inline-flex text-base font-bold text-[var(--ink)]"
-      >
-        ← All majors
-      </Link>
+      <BackToMajors />
 
       <header className="max-w-3xl">
         <p className="text-sm font-bold text-[#8a7018]">

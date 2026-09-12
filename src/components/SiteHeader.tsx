@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { pageChrome } from "@/lib/page-chrome";
 
 const links = [
   { href: "/", label: "Home" },
@@ -10,72 +11,48 @@ const links = [
   { href: "/outlook", label: "Major outlook" },
 ];
 
-function headerTheme(pathname: string) {
-  if (pathname.startsWith("/calculator")) {
-    return {
-      bar: "bg-[#c5e8c4] text-[#142033] border-[#9cc59a]",
-      hover: "hover:bg-black/10",
-      active: "bg-black/10",
-    };
-  }
-  if (pathname.startsWith("/planner")) {
-    return {
-      bar: "bg-[#f2d45c] text-[#142033] border-[#d4b63a]",
-      hover: "hover:bg-black/10",
-      active: "bg-black/10",
-    };
-  }
-  if (pathname.startsWith("/outlook")) {
-    return {
-      bar: "bg-[#c62828] text-white border-[#9e1e1e]",
-      hover: "hover:bg-white/10",
-      active: "bg-white/15",
-    };
-  }
-  return {
-    bar: "bg-[var(--navy)] text-white border-[var(--navy)]",
-    hover: "hover:bg-white/10",
-    active: "bg-white/15",
-  };
-}
-
 export function SiteHeader() {
   const pathname = usePathname();
-  const theme = headerTheme(pathname);
+  const theme = pageChrome(pathname);
 
   return (
-    <header
-      className={`border-b transition-colors duration-500 ${theme.bar}`}
-      style={{ viewTransitionName: "site-header" }}
-    >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-        <Link
-          href="/"
-          transitionTypes={["nav-back"]}
-          className="flex items-center gap-2.5 font-semibold tracking-tight"
-        >
-          <img src="/mark.svg" alt="" width={32} height={32} className="h-8 w-8 rounded-lg" />
-          UBC Science Path
-        </Link>
-        <nav className="flex flex-wrap gap-1 text-sm">
-          {links.map((link) => {
-            const on =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                transitionTypes={link.href === "/" ? ["nav-back"] : ["nav-forward"]}
-                className={`rounded-full px-3 py-1.5 ${theme.hover} ${on ? theme.active : ""}`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
+    <header className="site-header">
+      <div className={`site-header-bar ${theme.bar}`}>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-8 py-4 sm:px-10">
+          <Link
+            href="/"
+            transitionTypes={["nav-back"]}
+            className="flex items-center gap-2.5 font-semibold tracking-tight"
+          >
+            <img src="/mark.svg" alt="" width={32} height={32} className="h-8 w-8 rounded-lg" />
+            UBC Science Path
+          </Link>
+          <nav className="flex flex-wrap gap-1 text-sm">
+            {links.map((link) => {
+              const on =
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  transitionTypes={link.href === "/" ? ["nav-back"] : ["nav-forward"]}
+                  className={`rounded-full px-3 py-1.5 ${theme.hover} ${on ? theme.active : ""}`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       </div>
+      <svg className="site-header-wave" viewBox="0 0 1200 48" preserveAspectRatio="none" aria-hidden>
+        <path
+          fill={theme.rail}
+          d="M0 0h1200v10C1050 46 930 6 780 28 630 50 510 4 360 26 210 48 90 8 0 24V0Z"
+        />
+      </svg>
     </header>
   );
 }

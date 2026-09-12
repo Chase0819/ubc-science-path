@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { MajorMark } from "@/components/MajorMark";
+import { suckIntoCard } from "@/lib/suck-into";
 import { SPECIALIZATIONS } from "@/lib/specializations";
 import type { Specialization } from "@/lib/types";
 
@@ -130,11 +132,30 @@ export function CoursePlanner() {
 }
 
 function MajorCard({ spec }: { spec: Specialization }) {
+  const router = useRouter();
+
   return (
     <Link
       href={`/planner/${spec.id}`}
-      transitionTypes={["nav-forward"]}
-      className="flex items-start gap-3 rounded-[28px] border-2 border-[#142033] bg-white px-5 py-5 text-left shadow-[4px_4px_0_#142033] transition hover:-translate-y-0.5 hover:bg-[#fff8dc]"
+      data-major={spec.id}
+      onMouseEnter={() => router.prefetch(`/planner/${spec.id}`)}
+      onNavigate={(event) => event.preventDefault()}
+      onClick={(event) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.altKey ||
+          event.ctrlKey ||
+          event.shiftKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        const href = `/planner/${spec.id}`;
+        void suckIntoCard(event.currentTarget, href, () => router.push(href), spec.id);
+      }}
+      className="major-card flex items-start gap-3 rounded-[28px] border-2 border-[#142033] bg-white px-5 py-5 text-left shadow-[4px_4px_0_#142033] transition hover:-translate-y-0.5 hover:bg-[#fff8dc]"
     >
       <MajorMark id={spec.id} size={56} className="mt-0.5" />
       <div className="min-w-0">
