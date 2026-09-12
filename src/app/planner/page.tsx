@@ -1,4 +1,5 @@
 import { CoursePlanner } from "@/components/CoursePlanner";
+import { MajorMarkRow } from "@/components/MajorMark";
 
 export default function PlannerPage() {
   return (
@@ -10,6 +11,9 @@ export default function PlannerPage() {
           We’ll show the first-year courses in big type — including the “or” options — so you can
           build a timetable without squinting at the Calendar.
         </p>
+        <div className="mt-5">
+          <MajorMarkRow size={44} />
+        </div>
       </header>
       <CoursePlanner />
     </div>

@@ -38,8 +38,55 @@ export type FirstYearPlan = {
   notes: string[];
 };
 
-const CS_CALENDAR =
-  "https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-science/bachelor-science/computer-science";
+const BSc_CALENDAR =
+  "https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-science/bachelor-science";
+
+export const COMMS_CALENDAR = `${BSc_CALENDAR}/communication-requirement`;
+
+const CS_CALENDAR = `${BSc_CALENDAR}/computer-science`;
+
+/** Calendar page for this specialization (not the B.Sc. hub). */
+const CALENDAR_SLUG: Record<string, string> = {
+  cpsc: "computer-science",
+  nsci: "neuroscience",
+  pcth: "pharmacology",
+  mbim: "microbiology-and-immunology",
+  bioc: "biochemistry",
+  caps: "cellular-and-physiological-sciences",
+  biol: "biology",
+  chem: "chemistry",
+  dsci: "data-science",
+  stat: "statistics",
+  math: "mathematics",
+  masc: "computer-science",
+  "cogs-brain": "neuroscience",
+  "cogs-cid": "computer-science",
+  ensc: "environmental-sciences",
+  insc: "integrated-sciences",
+  phys: "physics",
+  astr: "astronomy",
+  atsc: "atmospheric-science",
+  geop: "geophysics",
+  eosc: "earth-and-ocean-sciences",
+  geol: "geological-sciences",
+  geos: "geographical-sciences",
+  cmsc: "combined-major-science",
+  "cpsc-biol": "computer-science",
+  "cpsc-math": "computer-science",
+  "cpsc-stat": "computer-science",
+  "cpsc-phys": "computer-science",
+  "cpsc-chem": "computer-science",
+  "cpsc-mbim": "computer-science",
+  "cpsc-nsci": "computer-science",
+  "stat-econ": "statistics",
+  "bioc-chem": "biochemistry",
+  "chem-biol": "biology",
+};
+
+export function calendarUrlFor(spec: Specialization): string {
+  const slug = CALENDAR_SLUG[spec.id];
+  return slug ? `${BSc_CALENDAR}/${slug}` : BSc_CALENDAR;
+}
 
 const DIFF_DISPLAY = "MATH 100 or 102 or 104 (or 180 or 184 or 120 or 110)";
 const DIFF_ALTS: CourseAlternatives = [
@@ -416,9 +463,8 @@ function fallbackPlan(spec: Specialization, view: EligibilityView): FirstYearPla
   rows.push({ kind: "total", credits: used + electives });
   return {
     heading: `${spec.name} — first year`,
-    calendarUrl:
-      "https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-science/bachelor-science",
-    calendarLabel: "UBC Calendar · Bachelor of Science",
+    calendarUrl: calendarUrlFor(spec),
+    calendarLabel: `UBC Calendar · ${spec.name}`,
     intro: view.noSubjectList
       ? "This specialization has no extra subject eligibility list. You still need second-year standing (typically 24+ credits) and the first-year Science pattern below."
       : "Finish the subject rows by the end of Winter Session if they are eligibility courses. Calculus and communication are the usual first-year Science pattern.",
@@ -440,7 +486,12 @@ export function codesFromPlan(plan: Pick<FirstYearPlan, "rows">): string[] {
 }
 
 export function getFirstYearPlan(spec: Specialization, view: EligibilityView): FirstYearPlan {
-  return PLANS[spec.id] ?? fallbackPlan(spec, view);
+  const plan = PLANS[spec.id] ?? fallbackPlan(spec, view);
+  return {
+    ...plan,
+    calendarUrl: calendarUrlFor(spec),
+    calendarLabel: `UBC Calendar · ${spec.name}`,
+  };
 }
 
 export function alternativeCovered(alt: string[], covered: Set<string>): boolean {

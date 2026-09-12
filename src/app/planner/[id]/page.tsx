@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MajorCoursePlan } from "@/components/MajorCoursePlan";
+import { MajorMark } from "@/components/MajorMark";
 import { codesFromPlan, getFirstYearPlan } from "@/lib/first-year-plans";
 import { applyView } from "@/lib/requirements";
 import { SPECIALIZATIONS, specializationById } from "@/lib/specializations";
@@ -44,7 +45,10 @@ export default async function MajorDetailPage({
           {spec.kind.replace(/-/g, " ")}
           {spec.quota ? " · limited seats" : " · no quota"}
         </p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-5xl">{spec.name}</h1>
+        <h1 className="mt-2 flex items-start gap-3 text-4xl font-black tracking-tight sm:items-center sm:text-5xl">
+          <MajorMark id={spec.id} size={56} className="mt-1 sm:mt-0" />
+          <span>{spec.name}</span>
+        </h1>
         <p className="mt-4 text-lg leading-8 text-[var(--muted)]">
           First-year courses live at the top. Build Term 1 and Term 2 at the bottom — AP credit
           counts toward the bar. Yellow stickers are last winter’s class average.

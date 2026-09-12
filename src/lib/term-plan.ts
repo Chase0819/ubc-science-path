@@ -39,7 +39,7 @@ export function courseRows(plan: FirstYearPlan): Extract<FirstYearRow, { kind: "
   if (hasComms && !rows.some((row) => row.alternatives.flat().includes("WRDS 150"))) {
     rows.push({
       kind: "courses",
-      display: "Additional communication",
+      display: "Second writing course (usually WRDS 150)",
       alternatives: [["WRDS 150"]],
       credits: 3,
       lead: "WRDS 150",

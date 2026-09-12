@@ -14,14 +14,16 @@ export const CATALOG: CatalogCourse[] = [
     title: "First-Year Seminar in Science",
     credits: 3,
     tags: ["comms"],
-    blurb: "Small-group writing and discussion about how science is done. Common communication requirement, not usually an eligibility course.",
+    blurb:
+      "Required for almost every B.Sc. student. This is only one of two communication courses — you still need a second writing course (usually WRDS 150).",
   },
   {
     code: "WRDS 150",
     title: "Writing and Research in the Disciplines",
     credits: 3,
     tags: ["comms"],
-    blurb: "Academic writing and research methods. Another way to meet the first-year communication requirement.",
+    blurb:
+      "The usual first-year pick for the second communication course. SCIE 113 alone is not enough — Faculty of Science requires 3 more writing credits.",
   },
   {
     code: "MATH 100",

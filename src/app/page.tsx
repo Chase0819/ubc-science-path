@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { MajorMark, PLANNER_SPOTLIGHT } from "@/components/MajorMark";
 import { Reveal } from "@/components/Reveal";
+import { specializationById } from "@/lib/specializations";
 
 const yearPlan = [
   {
@@ -182,15 +184,24 @@ export default function Home() {
               Open the course planner
             </Link>
           </div>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
-            <Image
-              src="/photos/campus-walk.png"
-              alt="Students walking between campus buildings"
-              fill
-              sizes="(min-width: 1024px) 32rem, 100vw"
-              className="object-cover"
-            />
-          </div>
+          <ul className="grid grid-cols-2 gap-3">
+            {PLANNER_SPOTLIGHT.map((id) => {
+              const spec = specializationById(id);
+              if (!spec) return null;
+              return (
+                <li key={id}>
+                  <Link
+                    href={`/planner/${id}`}
+                    transitionTypes={["nav-forward"]}
+                    className="flex items-center gap-3 rounded-[22px] border-2 border-[#142033] bg-[#fffdf6] px-3 py-3 shadow-[3px_3px_0_#142033] hover:bg-[#fff1a8]"
+                  >
+                    <MajorMark id={id} size={40} />
+                    <span className="text-sm font-bold leading-5">{spec.name}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </section>
       </Reveal>

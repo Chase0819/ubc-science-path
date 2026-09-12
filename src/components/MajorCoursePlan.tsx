@@ -5,6 +5,7 @@ import { coursesCoveredByExams, examCovering } from "@/lib/ap-credit";
 import { courseByCode } from "@/lib/catalog";
 import {
   alternativeCovered,
+  COMMS_CALENDAR,
   rowCovered,
   type FirstYearPlan,
   type FirstYearRow,
@@ -69,6 +70,7 @@ export function MajorCoursePlan({
             target="_blank"
             rel="noreferrer"
             className="rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-semibold shadow-[2px_2px_0_#142033]"
+            title={plan.calendarLabel}
           >
             Official Calendar ↗
           </a>
@@ -80,17 +82,26 @@ export function MajorCoursePlan({
 
         <div className="mt-8 space-y-8">
           {plan.rows
-            .filter((row) => row.kind === "courses")
-            .map((row, index) => (
-              <CourseBlock
-                key={`${row.display}-${index}`}
-                row={row}
-                averages={averages}
-                covered={covered}
-                examIds={hydrated ? exams : []}
-                step={index + 1}
-              />
-            ))}
+            .filter((row) => row.kind === "courses" || row.kind === "text")
+            .map((row, index) =>
+              row.kind === "text" ? (
+                <CommunicationBlock
+                  key={`${row.label}-${index}`}
+                  row={row}
+                  averages={averages}
+                  step={index + 1}
+                />
+              ) : (
+                <CourseBlock
+                  key={`${row.display}-${index}`}
+                  row={row}
+                  averages={averages}
+                  covered={covered}
+                  examIds={hydrated ? exams : []}
+                  step={index + 1}
+                />
+              ),
+            )}
         </div>
 
         <ExtrasBar rows={extras} />
@@ -120,9 +131,57 @@ export function MajorCoursePlan({
   );
 }
 
+function CommunicationBlock({
+  row,
+  averages,
+  step,
+}: {
+  row: Extract<FirstYearRow, { kind: "text" }>;
+  averages: Averages;
+  step: number;
+}) {
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#142033] text-sm font-bold text-[#f2d45c]">
+          {step}
+        </span>
+        <div>
+          <p className="text-xl font-bold leading-snug tracking-tight sm:text-2xl">
+            Second writing course
+            {row.note ? <sup className="ml-1 text-sm font-semibold"> {row.note}</sup> : null}
+          </p>
+          <p className="text-sm font-medium text-[var(--muted)]">{row.credits} credits · required</p>
+        </div>
+      </div>
+      <div className="rounded-[28px] border-2 border-[#142033] bg-[#fff8d6] p-4 shadow-[4px_4px_0_#142033] sm:p-5">
+        <p className="text-lg font-black tracking-tight">SCIE 113 is not enough on its own.</p>
+        <p className="mt-2 text-base leading-7">
+          Faculty of Science wants two communication courses: SCIE 113 plus 3 more writing credits.
+          Most first-year students take{" "}
+          <span className="font-bold">WRDS 150</span>. ENGL 110 or 111 also work. Chemistry can wait
+          for CHEM 300; Combined Major in Science uses SCIE 300 later; Environmental Sciences can
+          use ENVR 200.
+        </p>
+        <a
+          href={COMMS_CALENDAR}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033]"
+        >
+          Official writing-course list ↗
+        </a>
+      </div>
+      <div className="mt-3">
+        <OptionCard alt={["WRDS 150"]} averages={averages} done={false} />
+      </div>
+    </div>
+  );
+}
+
 function ExtrasBar({ rows }: { rows: FirstYearRow[] }) {
   const bits = rows.map((row) => {
-    if (row.kind === "text") return `${row.credits} cr · ${row.label}`;
+    if (row.kind === "text") return null;
     if (row.kind === "electives") return `${row.credits} cr electives`;
     if (row.kind === "total") return `${row.credits} credits total`;
     return null;
@@ -257,16 +316,15 @@ function AvgSticker({
   }
   return (
     <a
-      href={ubcGradesUrl(code)}
+      href={ubcGradesUrl(code, avg.session)}
       target="_blank"
       rel="noreferrer"
-      className="flex h-[4.75rem] w-[4.75rem] shrink-0 flex-col items-center justify-center rounded-3xl border-2 border-[#142033] bg-[#f2d45c] text-[var(--ink)] shadow-[3px_3px_0_#142033] sm:h-20 sm:w-20"
-      title={`${avg.session} overall class average`}
+      className="flex h-[4.75rem] w-[5.25rem] shrink-0 flex-col items-center justify-center rounded-3xl border-2 border-[#142033] bg-[#f2d45c] text-[var(--ink)] shadow-[3px_3px_0_#142033] sm:h-20 sm:w-[5.5rem]"
+      title={`${avg.session} winter, all sections`}
     >
       <span className="text-lg font-black leading-none tabular-nums sm:text-xl">
-        {round1(avg.average).toFixed(1)}
+        {round1(avg.average).toFixed(1)}%
       </span>
-      <span className="mt-1 text-[10px] font-bold leading-none">%</span>
       <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide">
         {avg.session}
       </span>

@@ -21,10 +21,10 @@ function splitCode(code: string): { subject: string; course: string } | null {
   return { subject: match[1].toUpperCase(), course: match[2] };
 }
 
-export function ubcGradesUrl(code: string): string {
+export function ubcGradesUrl(code: string, session = "2025W"): string {
   const parts = splitCode(code);
   if (!parts) return "https://ubcgrades.com/";
-  return `https://ubcgrades.com/#UBCV-${parts.subject}-${parts.course}`;
+  return `https://ubcgrades.com/#UBCV-${session}-${parts.subject}-${parts.course}-OVERALL`;
 }
 
 async function fetchJson<T>(url: string): Promise<T | null> {
