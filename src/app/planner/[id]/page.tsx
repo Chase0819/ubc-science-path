@@ -52,6 +52,7 @@ export default async function MajorDetailPage({
 
       <MajorCoursePlan
         specId={spec.id}
+        specKind={spec.kind}
         plan={plan}
         scienceOne={view.scienceOneAlt}
         averages={averages}

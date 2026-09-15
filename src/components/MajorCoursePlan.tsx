@@ -14,16 +14,19 @@ import { round1 } from "@/lib/grades";
 import { loadApExams, saveApExams } from "@/lib/storage";
 import { ubcGradesUrl, type WinterAverage } from "@/lib/ubcgrades";
 import { YearPlanner } from "@/components/YearPlanner";
+import type { Specialization } from "@/lib/types";
 
 type Averages = Record<string, WinterAverage | null>;
 
 export function MajorCoursePlan({
   specId,
+  specKind,
   plan,
   scienceOne,
   averages,
 }: {
   specId: string;
+  specKind: Specialization["kind"];
   plan: FirstYearPlan;
   scienceOne: boolean;
   averages: Averages;
@@ -126,7 +129,14 @@ export function MajorCoursePlan({
         </p>
       </section>
 
-      <YearPlanner specId={specId} plan={plan} exams={exams} onToggleExam={toggleExam} />
+      <YearPlanner
+        specId={specId}
+        specKind={specKind}
+        plan={plan}
+        scienceOne={scienceOne}
+        exams={exams}
+        onToggleExam={toggleExam}
+      />
     </div>
   );
 }

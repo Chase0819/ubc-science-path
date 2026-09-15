@@ -15,16 +15,21 @@ import {
   termCredits,
   type TermId,
 } from "@/lib/term-plan";
-import type { TermPlan } from "@/lib/types";
+import { TermSuggestions } from "@/components/TermSuggestions";
+import type { Specialization, TermPlan } from "@/lib/types";
 
 export function YearPlanner({
   specId,
+  specKind,
   plan,
+  scienceOne,
   exams,
   onToggleExam,
 }: {
   specId: string;
+  specKind: Specialization["kind"];
   plan: FirstYearPlan;
+  scienceOne: boolean;
   exams: string[];
   onToggleExam: (id: string) => void;
 }) {
@@ -44,6 +49,8 @@ export function YearPlanner({
   const bench = benchCourses(rows, placed, ap);
   const leftover = progress.total - progress.done;
   const apKey = exams.slice().sort().join(",");
+  /** Suggested electives are not part of the required list, so removing them drops them for good. */
+  const isExtra = (code: string) => !pageCodes.includes(code);
 
   useEffect(() => {
     setTerms(loadTermPlan(specId));
@@ -189,6 +196,7 @@ export function YearPlanner({
           onDrop={(event) => onDrop("term1", event)}
           onToTerm2={(code) => send(code, "term2")}
           onRemove={(code) => send(code, "bench")}
+          isExtra={isExtra}
         />
         <TermColumn
           id="term2"
@@ -201,8 +209,19 @@ export function YearPlanner({
           onDrop={(event) => onDrop("term2", event)}
           onToTerm1={(code) => send(code, "term1")}
           onRemove={(code) => send(code, "bench")}
+          isExtra={isExtra}
         />
       </div>
+
+      <TermSuggestions
+        specId={specId}
+        specKind={specKind}
+        planCodes={pageCodes}
+        requiredRows={rows}
+        scienceOneOption={scienceOne}
+        terms={terms}
+        ap={[...ap]}
+      />
     </section>
   );
 }
@@ -260,6 +279,7 @@ function TermColumn({
   onToTerm1,
   onToTerm2,
   onRemove,
+  isExtra,
 }: {
   id: TermId;
   title: string;
@@ -272,6 +292,7 @@ function TermColumn({
   onToTerm1?: (code: string) => void;
   onToTerm2?: (code: string) => void;
   onRemove: (code: string) => void;
+  isExtra?: (code: string) => boolean;
 }) {
   const credits = termCredits(codes);
   return (
@@ -308,6 +329,7 @@ function TermColumn({
               <CourseChip
                 code={code}
                 inTerm={id}
+                extra={isExtra?.(code) ?? false}
                 onTerm1={id === "term2" ? onToTerm1 : undefined}
                 onTerm2={id === "term1" ? onToTerm2 : undefined}
                 onRemove={() => onRemove(code)}
@@ -324,6 +346,7 @@ function CourseChip({
   code,
   hint,
   inTerm,
+  extra,
   onTerm1,
   onTerm2,
   onRemove,
@@ -331,6 +354,7 @@ function CourseChip({
   code: string;
   hint?: string;
   inTerm?: TermId;
+  extra?: boolean;
   onTerm1?: (code: string) => void;
   onTerm2?: (code: string) => void;
   onRemove?: () => void;
@@ -353,6 +377,11 @@ function CourseChip({
             {course?.credits ?? 3} cr{hint ? ` · ${hint}` : ""}
           </p>
         </div>
+        {extra ? (
+          <span className="shrink-0 rounded-full border-2 border-[#142033] bg-[#f2d45c] px-2 py-0.5 text-[10px] font-bold uppercase">
+            added
+          </span>
+        ) : null}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {onTerm1 && (
@@ -379,7 +408,7 @@ function CourseChip({
             className="rounded-full border-2 border-[#142033] bg-white px-3 py-1 text-xs font-bold"
             onClick={onRemove}
           >
-            Back
+            {extra ? "Remove" : "Back"}
           </button>
         )}
       </div>

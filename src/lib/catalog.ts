@@ -156,7 +156,8 @@ export const CATALOG: CatalogCourse[] = [
     title: "Laboratory Investigations in Life Science",
     credits: 2,
     tags: ["biol"],
-    blurb: "First-year biology lab. Useful for later BIOL courses, but not always on the eligibility list.",
+    blurb:
+      "Two-credit first-year biology lab. On the Laboratory Science list, but it does not count toward Life Science breadth.",
   },
   {
     code: "PHYS 100",
@@ -293,24 +294,106 @@ export const CATALOG: CatalogCourse[] = [
   },
   {
     code: "EOSC 110",
-    title: "The Solid Earth",
+    title: "The Solid Earth: A Dynamic Planet",
     credits: 3,
     tags: ["eosc"],
-    blurb: "Rocks, plate tectonics, and the solid Earth. Typical first-year Earth-science elective.",
+    blurb: "Rocks, plate tectonics, and the resources they leave behind. No prerequisite.",
   },
   {
     code: "EOSC 112",
-    title: "The Fluid Earth",
+    title: "The Climate System",
     credits: 3,
     tags: ["eosc"],
-    blurb: "Oceans, atmosphere, and climate. A common first-year Earth-science elective.",
+    blurb:
+      "Radiation balance, ocean and atmosphere circulation, and the carbon cycle. No prerequisite.",
+  },
+  {
+    code: "EOSC 111",
+    title: "Laboratory Exploration of Planet Earth",
+    credits: 1,
+    tags: ["eosc", "lab"],
+    blurb:
+      "A one-credit hands-on lab with no prerequisite. It is on the Faculty's Laboratory Science list, so it can satisfy that requirement on its own.",
+  },
+  {
+    code: "EOSC 114",
+    title: "The Catastrophic Earth: Natural Disasters",
+    credits: 3,
+    tags: ["eosc"],
+    blurb:
+      "Eruptions, earthquakes, tsunamis, storms, and landslides. No prerequisite, and it opens the Earth & Planetary Science breadth category.",
+  },
+  {
+    code: "ATSC 113",
+    title: "Weather Science for Sailing, Flying, and Snow Sports",
+    credits: 3,
+    tags: ["atsc"],
+    blurb:
+      "Atmospheric science taught through sailing, flying, and snow. No prerequisite, and it counts for Earth & Planetary Science breadth.",
+  },
+  {
+    code: "ASTR 101",
+    title: "Introduction to the Solar System",
+    credits: 3,
+    tags: ["astr", "lab"],
+    blurb:
+      "Motion, light, telescopes, and the Solar System. On the Laboratory Science list. Needs Physics 11, Physics 12, or PHYS 100, plus Pre-calculus 12.",
+  },
+  {
+    code: "CPSC 100",
+    title: "Computational Thinking",
+    credits: 3,
+    tags: ["cpsc"],
+    blurb:
+      "How computers solve problems, for students with no programming background. Not open once you have CPSC 107, CPSC 110, or APSC 160 credit, so it is the breadth option for non-CS majors.",
+  },
+  {
+    code: "CPSC 210",
+    title: "Software Construction",
+    credits: 4,
+    tags: ["cpsc", "coop"],
+    blurb:
+      "Building larger programs in Java. Not first-year eligibility, but Computer Science Co-op expects it in progress when you apply.",
+  },
+  {
+    code: "PSYC 102",
+    title: "Introduction to Developmental, Social, Personality, and Clinical Psychology",
+    credits: 3,
+    tags: ["psyc", "arts"],
+    blurb:
+      "The second half of intro psychology. Arts credit, no prerequisite, and a prerequisite for later PSYC courses.",
+  },
+  {
+    code: "PHIL 120",
+    title: "Introduction to Critical Thinking",
+    credits: 3,
+    tags: ["phil", "arts"],
+    blurb:
+      "Analyzing arguments and spotting fallacies. Arts credit with no prerequisite, but restricted to students under 90 credits.",
+  },
+  {
+    code: "AMNE 151",
+    title: "Greek and Roman Mythology",
+    credits: 3,
+    tags: ["amne", "arts"],
+    blurb:
+      "Greek and Roman myths in translation. Arts credit, no prerequisite. This is the course formerly numbered CLST 105.",
+  },
+  {
+    code: "GEOG 122",
+    title: "Geography, Modernity and Globalization",
+    credits: 3,
+    tags: ["geog", "arts"],
+    blurb:
+      "Economic geography, geopolitics, and urbanization since 1945. Arts credit — only GEOS and GEOB geography courses carry science credit.",
   },
   {
     code: "PSYC 101",
     title: "Introduction to Biological and Cognitive Psychology",
     credits: 3,
-    tags: ["psyc"],
-    blurb: "Brain, mind, and behaviour. Useful background for Neuroscience; not always on the eligibility list.",
+    tags: ["psyc", "arts"],
+    blurb:
+      "Brain, mind, and behaviour. Carries Arts credit, so it counts toward the 12-credit Arts Requirement — psychology only carries science credit at higher numbers.",
   },
   {
     code: "LING 100",
