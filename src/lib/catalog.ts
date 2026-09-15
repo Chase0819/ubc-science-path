@@ -1,4 +1,5 @@
 import { browseByCode } from "./browse-courses";
+import { electiveByCode } from "./electives";
 import type { CatalogCourse } from "./types";
 
 export const CATALOG: CatalogCourse[] = [
@@ -406,5 +407,5 @@ export const CATALOG: CatalogCourse[] = [
 ];
 
 export function courseByCode(code: string): CatalogCourse | undefined {
-  return CATALOG.find((c) => c.code === code) ?? browseByCode(code);
+  return CATALOG.find((c) => c.code === code) ?? browseByCode(code) ?? electiveByCode(code);
 }

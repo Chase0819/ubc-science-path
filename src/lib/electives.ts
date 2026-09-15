@@ -3,7 +3,6 @@ import {
   ARTS_CREDITS_REQUIRED,
   BREADTH_CATEGORIES,
   breadthCategoryOf,
-  breadthLabel,
   breadthProgress,
   isLabCourse,
   labSatisfied,
@@ -11,23 +10,21 @@ import {
 } from "./degree-requirements";
 import { artsCreditsOf } from "./browse-courses";
 import type { WinterAverage } from "./ubcgrades";
-import type { Specialization } from "./types";
+import type { CatalogCourse, Specialization } from "./types";
 
 export { artsCreditsOf };
 
 /**
  * A full winter is normally 4 to 5 courses a term. The required list for a
- * specialization rarely fills that, so the leftover seats go to Arts credits,
- * Science breadth, and Co-op prep.
+ * specialization rarely fills that, so leftover seats can go to a walk-in
+ * elective — or to Co-op prep if that deadline is in play.
  */
 export const COURSES_PER_TERM = 5;
 export const CREDITS_PER_TERM = 15;
 
-/** Breadth is a four-year job. One or two extra areas a year is the honest pace. */
-const MAX_BREADTH_SUGGESTIONS = 2;
-const MAX_ARTS_SUGGESTIONS = 2;
+const MAX_ELECTIVE_SUGGESTIONS = 5;
 
-export type SuggestionKind = "coop" | "breadth" | "arts" | "lab";
+export type SuggestionKind = "coop" | "elective";
 
 export type Suggestion = {
   code: string;
@@ -39,84 +36,71 @@ export type Suggestion = {
   term: "term1" | "term2" | "either";
 };
 
-/** Courses in the Faculty of Arts that a first-year Science student can walk into. */
-export const ARTS_PICKS: { code: string; detail: string }[] = [
+/** Walk-in electives with no university-course prerequisite — not Arts, breadth, or lab. */
+export const ELECTIVE_PICKS: {
+  code: string;
+  title: string;
+  credits: number;
+  reason: string;
+  detail: string;
+}[] = [
   {
-    code: "PSYC 101",
-    detail: "The most common Arts pick in Science. No prerequisite, and it pairs with PSYC 102.",
-  },
-  {
-    code: "PSYC 102",
+    code: "NURS 180",
+    title: "Stress and Strategies to Promote Well Being",
+    credits: 3,
+    reason: "Nursing elective",
     detail:
-      "The other half of intro psychology. With PSYC 101 that is 6 of your 12 Arts credits, and both are prerequisites for later PSYC courses.",
+      "How stress works and what actually helps. Open to every faculty, no university course first — a common first-year pick when you want a lighter seat.",
   },
   {
-    code: "ECON 101",
-    detail: "Microeconomics. No prerequisite, and it opens a lot of later Arts options.",
-  },
-  {
-    code: "ECON 102",
-    detail: "Macroeconomics. Stacks with ECON 101 for 6 Arts credits.",
-  },
-  {
-    code: "PHIL 120",
+    code: "NURS 280",
+    title: "Human Sexual Health",
+    credits: 3,
+    reason: "Nursing elective",
     detail:
-      "Arguments, fallacies, and where reasoning breaks. No prerequisite, but it is restricted to students under 90 credits — so it is a first- or second-year course.",
+      "Sexual health from several angles, not a Nursing-majors class. No university-course prerequisite.",
   },
   {
-    code: "LING 100",
-    detail: "How language is structured. No prerequisite, and useful later for Cognitive Systems.",
-  },
-  {
-    code: "AMNE 151",
+    code: "FRST 100",
+    title: "Sustainable Forests",
+    credits: 3,
+    reason: "Forestry elective",
     detail:
-      "Greek and Roman mythology, read in translation. No prerequisite. This is the course that used to be CLST 105.",
+      "Forests and forestry in B.C. and elsewhere. No university-course prerequisite — a walk-in from Forestry.",
   },
   {
-    code: "GEOG 122",
+    code: "CONS 127",
+    title: "Observing the Earth from Space",
+    credits: 3,
+    reason: "Forestry elective",
     detail:
-      "Human geography since 1945. Counts as Arts — only the GEOS and GEOB geography codes carry science credit instead.",
+      "Satellites and maps, without a lab. No university-course prerequisite.",
+  },
+  {
+    code: "UFOR 100",
+    title: "Greening the City",
+    credits: 3,
+    reason: "Forestry elective",
+    detail:
+      "Urban trees, parks, and why cities need them. No university-course prerequisite.",
+  },
+  {
+    code: "CONS 101",
+    title: "Introduction to Conservation",
+    credits: 3,
+    reason: "Forestry elective",
+    detail:
+      "Current conservation and forest-science topics. No university-course prerequisite.",
+  },
+  {
+    code: "NURS 290",
+    title: "Health Impacts of Climate Change",
+    credits: 3,
+    reason: "Nursing elective",
+    detail:
+      "Climate and health, written for any faculty. No university-course prerequisite.",
   },
 ];
-
-/** First-year friendly ways to open each breadth category. */
-const BREADTH_PICKS: Record<BreadthId, string[]> = {
-  math: ["MATH 100", "MATH 101"],
-  chem: ["CHEM 121", "CHEM 123"],
-  phys: ["PHYS 117", "PHYS 118"],
-  life: ["BIOL 112", "BIOL 121", "BIOL 111"],
-  stat: ["DSCI 100", "STAT 200"],
-  cpsc: ["CPSC 100", "CPSC 103", "CPSC 110"],
-  earth: ["EOSC 114", "ATSC 113", "EOSC 110", "EOSC 112"],
-};
-
-/** Lab courses that are easy to add when the required list has no lab in it. */
-const LAB_PICKS = ["EOSC 111", "ASTR 101", "BIOL 140"];
-
-/** Prefer a lab course when that same pick also opens the missing breadth area. */
-function picksFor(category: BreadthId, wantLab: boolean): string[] {
-  const picks = BREADTH_PICKS[category];
-  if (!wantLab) return picks;
-  const dual = LAB_PICKS.filter((code) => breadthCategoryOf(code) === category);
-  return [...new Set([...dual, ...picks.filter(isLabCourse), ...picks])];
-}
-
-/**
- * Which breadth area to open first when several are missing: the ones whose
- * first-year entry course has no prerequisite and no lab attached.
- */
-const BREADTH_ORDER: BreadthId[] = ["earth", "stat", "cpsc", "life", "chem", "phys", "math"];
-
-/** Prerequisites and restrictions worth saying out loud before someone registers. */
-const PICK_NOTES: Record<string, string> = {
-  "EOSC 111": "One credit, no prerequisite — the cheapest way to tick this box. It does not open Earth & Planetary Science breadth.",
-  "ASTR 101": "Needs Physics 11, Physics 12, or PHYS 100, plus Pre-calculus 12.",
-  "BIOL 140": "Two credits. Needs Biology 11, Biology 12, or BIOL 111. It does not open Life Science breadth.",
-  "BIOL 111": "Not open to you if you already have Biology 12 credit — take BIOL 112 instead.",
-  "CPSC 100": "No programming experience needed, but not open once you have CPSC 107, CPSC 110, or APSC 160 credit.",
-  "STAT 200": "Needs a first-year calculus course, so it fits Term 2 or later.",
-  "ATSC 113": "No prerequisite. Weather through sailing, flying, and snow sports.",
-};
 
 export function artsCredits(codes: string[]): number {
   return codes.reduce((sum, code) => sum + artsCreditsOf(code), 0);
@@ -137,7 +121,7 @@ export type SuggestionInput = {
   planCodes: string[];
   /** The required groups, so areas the year covers by definition are not suggested again. */
   requiredRows: { alternatives: string[][] }[];
-  /** Latest winter class averages, used to rank Arts suggestions. */
+  /** Latest winter class averages, used to rank walk-in elective suggestions. */
   averages?: Record<string, WinterAverage | null>;
 };
 
@@ -202,12 +186,19 @@ export type SuggestionReport = {
 
 /** First-year courses the empty-seat recommender might offer. */
 export function electiveSuggestionCodes(): string[] {
-  return [
-    ...ARTS_PICKS.map((item) => item.code),
-    ...Object.values(BREADTH_PICKS).flat(),
-    ...LAB_PICKS,
-    "CPSC 210",
-  ];
+  return [...ELECTIVE_PICKS.map((item) => item.code), "CPSC 210"];
+}
+
+export function electiveByCode(code: string): CatalogCourse | undefined {
+  const hit = ELECTIVE_PICKS.find((item) => item.code === code);
+  if (!hit) return undefined;
+  return {
+    code: hit.code,
+    title: hit.title,
+    credits: hit.credits,
+    tags: [],
+    blurb: hit.detail,
+  };
 }
 
 /**
@@ -232,8 +223,7 @@ export function suggestElectives(input: SuggestionInput): SuggestionReport {
   function push(code: string, kind: SuggestionKind, reason: string, detail: string, term: Suggestion["term"]) {
     if (taken.has(code)) return;
     taken.add(code);
-    const note = PICK_NOTES[code];
-    suggestions.push({ code, kind, reason, detail: note ? `${detail} ${note}` : detail, term });
+    suggestions.push({ code, kind, reason, detail, term });
   }
 
   // Co-op first: it is the only one with a deadline attached to it.
@@ -248,60 +238,14 @@ export function suggestElectives(input: SuggestionInput): SuggestionReport {
     push(code, "coop", "Co-op prep", detail, code === "CPSC 110" ? "term1" : "term2");
   }
 
-  // Breadth: the areas with the friendliest first-year entry course, a couple at a time.
-  let labCovered = lab;
-  const stillNeeded = Math.min(breadth.shortBy, MAX_BREADTH_SUGGESTIONS);
-  if (stillNeeded > 0) {
-    const openable = breadth.missing
-      .filter((category) => !suggestions.some((item) => breadthCategoryOf(item.code) === category))
-      .filter((category) => BREADTH_PICKS[category].some((code) => !heldSet.has(code)))
-      .sort((a, b) => BREADTH_ORDER.indexOf(a) - BREADTH_ORDER.indexOf(b));
-    for (const category of openable.slice(0, stillNeeded)) {
-      const picks = picksFor(category, !labCovered);
-      const code = picks.find((pick) => !taken.has(pick));
-      if (!code) continue;
-      const area = breadthLabel(category);
-      const alsoLab = !labCovered && isLabCourse(code);
-      push(
-        code,
-        "breadth",
-        alsoLab ? "Breadth + lab" : "Science breadth",
-        alsoLab
-          ? `Opens ${area} and sits on the Laboratory Science list, so one course does both jobs.`
-          : `Opens ${area} — nothing else in your year covers that area.`,
-        code === "STAT 200" ? "term2" : "either",
-      );
-      if (alsoLab) labCovered = true;
-    }
-  }
-
-  if (!labCovered) {
-    const code = LAB_PICKS.find((pick) => !heldSet.has(pick) && isLabCourse(pick));
-    if (code) {
-      push(
-        code,
-        "lab",
-        "Lab requirement",
-        "Nothing in your plan is on the Laboratory Science list yet, and every B.Sc. needs one.",
-        "either",
-      );
-    }
-  }
-
-  if (artsHave < ARTS_CREDITS_REQUIRED) {
-    const wanted = Math.min(
-      MAX_ARTS_SUGGESTIONS,
-      Math.ceil((ARTS_CREDITS_REQUIRED - artsHave) / 3),
-    );
-    const artsLeft = ARTS_PICKS.filter((item) => !heldSet.has(item.code)).sort((a, b) => {
-      const scoreA = input.averages?.[a.code]?.average ?? -1;
-      const scoreB = input.averages?.[b.code]?.average ?? -1;
-      if (scoreB !== scoreA) return scoreB - scoreA;
-      return ARTS_PICKS.indexOf(a) - ARTS_PICKS.indexOf(b);
-    });
-    for (const pick of artsLeft.slice(0, wanted)) {
-      push(pick.code, "arts", "Arts requirement", pick.detail, "either");
-    }
+  const electivesLeft = ELECTIVE_PICKS.filter((item) => !heldSet.has(item.code)).sort((a, b) => {
+    const scoreA = input.averages?.[a.code]?.average ?? -1;
+    const scoreB = input.averages?.[b.code]?.average ?? -1;
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return ELECTIVE_PICKS.indexOf(a) - ELECTIVE_PICKS.indexOf(b);
+  });
+  for (const pick of electivesLeft.slice(0, MAX_ELECTIVE_SUGGESTIONS)) {
+    push(pick.code, "elective", pick.reason, pick.detail, "either");
   }
 
   return {

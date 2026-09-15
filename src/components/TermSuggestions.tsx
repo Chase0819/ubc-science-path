@@ -25,9 +25,7 @@ import type { BrowseKind } from "@/lib/browse-courses";
 
 const KIND_STYLE: Record<SuggestionKind, string> = {
   coop: "bg-[#c62828] text-white",
-  breadth: "bg-[#c5e8c4]",
-  arts: "bg-[#f2d45c]",
-  lab: "bg-[#d8ccf5]",
+  elective: "bg-[#d8ccf5]",
 };
 
 export function TermSuggestions({
@@ -74,15 +72,21 @@ export function TermSuggestions({
         <p className="text-sm font-semibold text-[#8a7018]">The other seats</p>
         <h2 className="mt-1 text-3xl font-bold tracking-tight">What else to take</h2>
         <p className="mt-2 max-w-3xl text-base leading-7 text-[var(--muted)]">
-          Most first-year students carry four or five courses a term. Your eligibility list rarely
-          fills that, and the leftover seats are not free — the B.Sc. also wants Arts credits,
-          Science breadth, and a lab. Co-op, if you want it, has its own first-year timing.
+          Most first-year students carry four or five courses a term, and the eligibility list
+          rarely fills that. Arts credits, Science breadth, and the lab are for the B.Sc. as a
+          whole — they do not have to be finished in first year, and you can take none of them this
+          winter. Filling an empty seat with one is a good idea if the course looks doable. If you
+          think it will drop your average, skip it. First-year grades matter for specialization
+          admission, and that call is yours. Co-op, if you want it, is the exception: it has its
+          own first-year timing.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <TermLoadCard title="Term 1" codes={terms.term1} />
-        <TermLoadCard title="Term 2" codes={terms.term2} />
+      <div className="sticky top-0 z-30 -mx-1 bg-[var(--paper)]/95 px-1 py-3 shadow-[0_8px_16px_-8px_rgba(20,32,51,0.35)] backdrop-blur-sm">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TermLoadCard title="Term 1" codes={terms.term1} onRemove={onRemove} />
+          <TermLoadCard title="Term 2" codes={terms.term2} onRemove={onRemove} />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -95,11 +99,13 @@ export function TermSuggestions({
           onBrowse={() => setBrowse("arts")}
         >
           <p>
-            Every B.Sc. needs 12 credits from the Faculty of Arts. Writing courses you use for the
-            Communication Requirement — SCIE 113, WRDS 150, an ENGL course — do not count twice.
+            Every B.Sc. needs 12 credits from the Faculty of Arts before you graduate. Writing
+            courses you use for the Communication Requirement — SCIE 113, WRDS 150, an ENGL course —
+            do not count twice.
           </p>
           <p className="mt-2">
-            Three or six credits in first year keeps it from piling up in fourth year.
+            You do not have to start this year. One Arts course now is a recommendation, not a
+            requirement — skip it if you would rather protect your average.
           </p>
         </RequirementCard>
 
@@ -113,15 +119,16 @@ export function TermSuggestions({
         >
           <p>
             {combined
-              ? "Combined specializations need 3 credits in 5 of these 7 areas."
-              : "Majors and honours need 3 credits in 6 of these 7 areas."}{" "}
-            Any level counts, and the courses your major already requires count.
+              ? "Combined specializations need 3 credits in 5 of these 7 areas before you graduate."
+              : "Majors and honours need 3 credits in 6 of these 7 areas before you graduate."}{" "}
+            Any level counts, and the courses your major already requires count. Extra areas in
+            first year are optional.
           </p>
           {report.breadth.satisfied ? null : (
             <p className="mt-2 font-semibold">
               {report.breadth.shortBy} more{" "}
-              {report.breadth.shortBy === 1 ? "area" : "areas"} to open before you graduate — one or
-              two a year is a normal pace.
+              {report.breadth.shortBy === 1 ? "area" : "areas"} still open for later years — not a
+              first-year deadline.
             </p>
           )}
           <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-2">
@@ -157,8 +164,9 @@ export function TermSuggestions({
           onBrowse={() => setBrowse("lab")}
         >
           <p>
-            One course from the Faculty’s lab list, so you handle real data at least once:{" "}
-            {LAB_COURSES.slice(0, 6).join(", ")}, and a few others.
+            One course from the Faculty’s lab list before you graduate, so you handle real data at
+            least once: {LAB_COURSES.slice(0, 6).join(", ")}, and a few others. It does not have to
+            be first year.
           </p>
           {report.lab.satisfied ? (
             <p className="mt-2 font-semibold text-emerald-800">
@@ -209,10 +217,18 @@ export function TermSuggestions({
 
       <div>
         <h3 className="text-xl font-bold">Suggested courses for the empty seats</h3>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
+          Co-op prep stays on this list when this major has a first-year deadline. The rest are
+          walk-in electives with no university course first — Nursing, Forestry, and similar —
+          ranked by last winter’s class average. Arts, Science breadth, and the lab live in the
+          boxes above; they are not on this list. Take one if it fits and you expect to do well. If
+          the average looks like it will drag yours down, leave the seat empty.
+        </p>
         {report.suggestions.length === 0 ? (
           <p className="mt-2 rounded-[24px] border-2 border-dashed border-[#142033] bg-[#f4f1ea] px-5 py-4 text-base leading-7">
-            Your plan already covers Arts credits, Science breadth, and the lab requirement. Anything
-            else you add this year is a free elective — take something you want.
+            Nothing extra on this list right now — either these electives are already in your plan,
+            or Co-op is the only timed add. Arts, Science breadth, and the lab stay in the boxes
+            above.
           </p>
         ) : (
           <ul className="mt-3 space-y-3">
@@ -249,7 +265,15 @@ export function TermSuggestions({
   );
 }
 
-function TermLoadCard({ title, codes }: { title: string; codes: string[] }) {
+function TermLoadCard({
+  title,
+  codes,
+  onRemove,
+}: {
+  title: string;
+  codes: string[];
+  onRemove: (code: string) => void;
+}) {
   const credits = termCredits(codes);
   const seats = COURSES_PER_TERM - codes.length;
   const message =
@@ -267,6 +291,25 @@ function TermLoadCard({ title, codes }: { title: string; codes: string[] }) {
         </p>
       </div>
       <p className="mt-1 text-sm font-medium text-[var(--muted)]">{message}</p>
+      {codes.length > 0 ? (
+        <ul className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
+          {codes.map((code) => (
+            <li
+              key={code}
+              className="inline-flex max-w-full items-center gap-1 rounded-full border-2 border-[#142033] bg-[#f4f1ea] py-0.5 pl-2.5 pr-1"
+            >
+              <span className="truncate text-xs font-bold">{code}</span>
+              <button
+                type="button"
+                onClick={() => onRemove(code)}
+                className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold hover:bg-white"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
