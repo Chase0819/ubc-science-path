@@ -9,8 +9,11 @@ import {
   labSatisfied,
   type BreadthId,
 } from "./degree-requirements";
+import { artsCreditsOf } from "./browse-courses";
 import type { WinterAverage } from "./ubcgrades";
 import type { Specialization } from "./types";
+
+export { artsCreditsOf };
 
 /**
  * A full winter is normally 4 to 5 courses a term. The required list for a
@@ -114,22 +117,6 @@ const PICK_NOTES: Record<string, string> = {
   "STAT 200": "Needs a first-year calculus course, so it fits Term 2 or later.",
   "ATSC 113": "No prerequisite. Weather through sailing, flying, and snow sports.",
 };
-
-/** Arts credit values, so progress toward the 12-credit Arts Requirement can be counted. */
-const ARTS_CREDIT: Record<string, number> = {
-  "PSYC 101": 3,
-  "PSYC 102": 3,
-  "ECON 101": 3,
-  "ECON 102": 3,
-  "PHIL 120": 3,
-  "LING 100": 3,
-  "AMNE 151": 3,
-  "GEOG 122": 3,
-};
-
-export function artsCreditsOf(code: string): number {
-  return ARTS_CREDIT[code] ?? 0;
-}
 
 export function artsCredits(codes: string[]): number {
   return codes.reduce((sum, code) => sum + artsCreditsOf(code), 0);

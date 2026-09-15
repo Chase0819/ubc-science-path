@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { AvgSticker } from "@/components/AvgSticker";
+import { RequirementBrowse } from "@/components/RequirementBrowse";
 import { courseByCode } from "@/lib/catalog";
 import { COOP_BASELINE, COOP_DEADLINES, COOP_REQUIREMENTS, coopPlan } from "@/lib/coop";
 import {
@@ -19,6 +21,7 @@ import {
 import { termCredits } from "@/lib/term-plan";
 import type { Specialization, TermPlan } from "@/lib/types";
 import type { WinterAverage } from "@/lib/ubcgrades";
+import type { BrowseKind } from "@/lib/browse-courses";
 
 const KIND_STYLE: Record<SuggestionKind, string> = {
   coop: "bg-[#c62828] text-white",
@@ -37,6 +40,7 @@ export function TermSuggestions({
   ap,
   averages,
   onAdd,
+  onRemove,
 }: {
   specId: string;
   specKind: Specialization["kind"];
@@ -48,7 +52,9 @@ export function TermSuggestions({
   ap: string[];
   averages: Record<string, WinterAverage | null>;
   onAdd: (code: string, term: "term1" | "term2") => void;
+  onRemove: (code: string) => void;
 }) {
+  const [browse, setBrowse] = useState<BrowseKind | null>(null);
   const placed = [...terms.term1, ...terms.term2];
   const report = suggestElectives({
     specId,
@@ -85,6 +91,8 @@ export function TermSuggestions({
           value={`${report.arts.have} of ${report.arts.need}`}
           done={report.arts.have >= report.arts.need}
           href={CALENDAR_SCIENCE_ARTS}
+          browseLabel="Search Arts courses"
+          onBrowse={() => setBrowse("arts")}
         >
           <p>
             Every B.Sc. needs 12 credits from the Faculty of Arts. Writing courses you use for the
@@ -100,6 +108,8 @@ export function TermSuggestions({
           value={`${report.breadth.covered.length} of ${report.breadth.target} areas`}
           done={report.breadth.satisfied}
           href={CALENDAR_BREADTH}
+          browseLabel="Search breadth courses"
+          onBrowse={() => setBrowse("breadth")}
         >
           <p>
             {combined
@@ -143,6 +153,8 @@ export function TermSuggestions({
           value={report.lab.satisfied ? "Covered" : "Not yet"}
           done={report.lab.satisfied}
           href={CALENDAR_LOWER_LEVEL}
+          browseLabel="See the lab list"
+          onBrowse={() => setBrowse("lab")}
         >
           <p>
             One course from the Faculty’s lab list, so you handle real data at least once:{" "}
@@ -221,6 +233,18 @@ export function TermSuggestions({
           requirement is close.
         </p>
       </div>
+
+      {browse ? (
+        <RequirementBrowse
+          kind={browse}
+          open
+          terms={terms}
+          averages={averages}
+          onAdd={onAdd}
+          onRemove={onRemove}
+          onClose={() => setBrowse(null)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -252,12 +276,16 @@ function RequirementCard({
   value,
   done,
   href,
+  browseLabel,
+  onBrowse,
   children,
 }: {
   title: string;
   value: string;
   done: boolean;
   href: string;
+  browseLabel: string;
+  onBrowse: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -273,14 +301,23 @@ function RequirementCard({
         </span>
       </div>
       <div className="mt-3 text-sm leading-6 text-[var(--muted)]">{children}</div>
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-3 inline-block text-sm font-semibold underline"
-      >
-        Calendar rule ↗
-      </a>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onBrowse}
+          className="rounded-full border-2 border-[#142033] bg-[#f2d45c] px-4 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033]"
+        >
+          {browseLabel}
+        </button>
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="text-sm font-semibold underline"
+        >
+          Calendar rule ↗
+        </a>
+      </div>
     </div>
   );
 }

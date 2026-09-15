@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BackToMajors } from "@/components/BackToMajors";
 import { MajorCoursePlan } from "@/components/MajorCoursePlan";
 import { MajorMark } from "@/components/MajorMark";
+import { browseCodes } from "@/lib/browse-courses";
 import { electiveSuggestionCodes } from "@/lib/electives";
 import { codesFromPlan, getFirstYearPlan } from "@/lib/first-year-plans";
 import { applyView } from "@/lib/requirements";
@@ -29,6 +30,7 @@ export default async function MajorDetailPage({
   const averages = await getWinterAverages([
     ...codesFromPlan(plan),
     "WRDS 150",
+    ...browseCodes(),
     ...electiveSuggestionCodes(),
     ...(view.scienceOneAlt ? ["SCIE 001"] : []),
   ]);

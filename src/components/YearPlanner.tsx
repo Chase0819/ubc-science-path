@@ -226,6 +226,7 @@ export function YearPlanner({
         ap={[...ap]}
         averages={averages}
         onAdd={send}
+        onRemove={(code) => send(code, "bench")}
       />
     </section>
   );
