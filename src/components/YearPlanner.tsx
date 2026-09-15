@@ -108,14 +108,15 @@ export function YearPlanner({
 
   return (
     <section className="space-y-6">
-      <div>
-        <p className="text-sm font-semibold text-[#8a7018]">Your winter</p>
-        <h2 className="mt-1 text-3xl font-bold tracking-tight">Build Term 1 and Term 2</h2>
-        <p className="mt-2 max-w-3xl text-base leading-7 text-[var(--muted)]">
-          Drag a course into a term — or tap Term 1 / Term 2. AP credit counts as already done, so
-          those courses do not need a seat.
-        </p>
-      </div>
+      <div data-tutorial="ap" className="scroll-mt-8 space-y-6">
+        <div>
+          <p className="text-sm font-semibold text-[#8a7018]">Your winter</p>
+          <h2 className="mt-1 text-3xl font-bold tracking-tight">Build Term 1 and Term 2</h2>
+          <p className="mt-2 max-w-3xl text-base leading-7 text-[var(--muted)]">
+            Drag a course into a term — or tap Term 1 / Term 2. AP credit counts as already done, so
+            those courses do not need a seat.
+          </p>
+        </div>
 
       {apOptions.length > 0 && (
         <div>
@@ -143,6 +144,7 @@ export function YearPlanner({
           </ul>
         </div>
       )}
+      </div>
 
       <div>
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
@@ -169,6 +171,7 @@ export function YearPlanner({
         </p>
       </div>
 
+      <div data-tutorial="place" className="scroll-mt-8 space-y-4">
       <DropZone
         id="bench"
         title="Still to place"
@@ -245,7 +248,7 @@ export function YearPlanner({
         )}
       </DropZone>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div data-tutorial="terms" className="grid gap-4 scroll-mt-8 lg:grid-cols-2">
         <TermColumn
           id="term1"
           title="Term 1"
@@ -272,6 +275,7 @@ export function YearPlanner({
           onRemove={(code) => send(code, "bench")}
           isExtra={isExtra}
         />
+      </div>
       </div>
 
       <TermSuggestions

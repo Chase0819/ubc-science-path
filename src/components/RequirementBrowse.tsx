@@ -56,18 +56,26 @@ export function RequirementBrowse({
   onClose: () => void;
 }) {
   const titleId = useId();
+  const catsId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [category, setCategory] = useState(TOP_5);
+  const [catsOpen, setCatsOpen] = useState(kind !== "arts");
 
   useEffect(() => {
     if (!open) return;
     setCategory(TOP_5);
+    setCatsOpen(kind !== "arts");
   }, [open, kind]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
   }, [category]);
+
+  function pickCategory(id: string) {
+    setCategory(id);
+    setCatsOpen(false);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -111,8 +119,10 @@ export function RequirementBrowse({
 
   if (!open) return null;
 
+  const categoryLabel = category === TOP_5 ? "Top 5" : browseCategoryLabel(kind, category);
+
   const frame = (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-1 sm:p-3">
       <button
         type="button"
         aria-label="Close course list"
@@ -123,13 +133,13 @@ export function RequirementBrowse({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 flex h-[min(96vh,70rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border-2 border-[#142033] bg-[#f4f1ea] shadow-[8px_8px_0_#142033]"
+        className="relative z-10 flex h-[min(98vh,86rem)] w-full max-w-[92rem] flex-col overflow-hidden rounded-[28px] border-2 border-[#142033] bg-[#f4f1ea] shadow-[8px_8px_0_#142033]"
       >
-        <div className="border-b-2 border-[#142033] bg-white px-5 py-4 sm:px-7 sm:py-5">
+        <div className="border-b-2 border-[#142033] bg-white px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-[#8a7018]">Browse courses</p>
-              <h2 id={titleId} className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">
+              <h2 id={titleId} className="mt-0.5 text-2xl font-black tracking-tight sm:text-3xl">
                 {copy.title}
               </h2>
             </div>
@@ -142,30 +152,61 @@ export function RequirementBrowse({
               Close
             </button>
           </div>
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">{copy.intro}</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <p className="mt-1.5 max-w-5xl text-xs leading-5 text-[var(--muted)] sm:text-sm sm:leading-6">
+            {copy.intro}
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <TermCount title="Term 1" codes={terms.term1} onRemove={onRemove} />
             <TermCount title="Term 2" codes={terms.term2} onRemove={onRemove} />
           </div>
           {paged ? (
-            <ul className="mt-4 flex flex-wrap gap-2">
-              <li>
-                <CategoryChip label="Top 5" on={category === TOP_5} onClick={() => setCategory(TOP_5)} />
-              </li>
-              {categories.map((id) => (
-                <li key={id}>
-                  <CategoryChip
-                    label={browseCategoryLabel(kind, id)}
-                    on={category === id}
-                    onClick={() => setCategory(id)}
-                  />
-                </li>
-              ))}
-            </ul>
+            <div className="mt-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-black uppercase tracking-wide text-[var(--muted)]">
+                  Categories
+                </p>
+                <button
+                  type="button"
+                  aria-expanded={catsOpen}
+                  aria-controls={catsId}
+                  onClick={() => setCatsOpen((openNow) => !openNow)}
+                  className="rounded-full border-2 border-[#142033] bg-white px-3 py-0.5 text-xs font-bold shadow-[1px_1px_0_#142033] hover:bg-[#fff6c8]"
+                >
+                  {catsOpen ? "Collapse" : "Expand"}
+                </button>
+              </div>
+              {catsOpen ? (
+                <ul id={catsId} className="mt-2 flex flex-wrap gap-1">
+                  <li>
+                    <CategoryChip
+                      label="Top 5"
+                      on={category === TOP_5}
+                      onClick={() => pickCategory(TOP_5)}
+                    />
+                  </li>
+                  {categories.map((id) => (
+                    <li key={id}>
+                      <CategoryChip
+                        label={browseCategoryLabel(kind, id)}
+                        on={category === id}
+                        onClick={() => pickCategory(id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div id={catsId} className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <CategoryChip label={categoryLabel} on onClick={() => setCatsOpen(true)} />
+                  <p className="text-xs font-medium text-[var(--muted)]">
+                    Expand to see every category
+                  </p>
+                </div>
+              )}
+            </div>
           ) : null}
         </div>
 
-        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-7 sm:py-5">
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
           <section>
             <h3 className="text-xl font-bold">{heading}</h3>
             {intro ? <p className="mt-1 text-sm text-[var(--muted)]">{intro}</p> : null}
@@ -214,14 +255,14 @@ function TermCount({
   const credits = termCredits(codes);
   const seats = COURSES_PER_TERM - codes.length;
   return (
-    <div className="rounded-[20px] border-2 border-[#142033] bg-[#f4f1ea] px-4 py-3">
+    <div className="rounded-[16px] border-2 border-[#142033] bg-[#f4f1ea] px-3 py-2">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="font-black">{title}</p>
-        <p className="text-sm font-bold tabular-nums">
+        <p className="text-sm font-black">{title}</p>
+        <p className="text-xs font-bold tabular-nums">
           {codes.length} {codes.length === 1 ? "course" : "courses"} · {credits} cr
         </p>
       </div>
-      <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">
+      <p className="mt-0.5 text-[11px] font-medium text-[var(--muted)]">
         {codes.length === 0
           ? "Nothing placed yet."
           : seats > 0
@@ -229,13 +270,13 @@ function TermCount({
             : "That is a full load."}
       </p>
       {codes.length > 0 ? (
-        <ul className="mt-2 max-h-32 space-y-1.5 overflow-y-auto">
+        <ul className="mt-1.5 max-h-24 space-y-1 overflow-y-auto">
           {codes.map((code) => (
             <li
               key={code}
-              className="flex items-center justify-between gap-2 rounded-full border-2 border-[#142033] bg-white px-3 py-1"
+              className="flex items-center justify-between gap-2 rounded-full border-2 border-[#142033] bg-white px-2.5 py-0.5"
             >
-              <span className="min-w-0 truncate text-sm font-bold">
+              <span className="min-w-0 truncate text-xs font-bold">
                 {code}
                 <span className="ml-1 font-medium text-[var(--muted)]">
                   {courseByCode(code)?.title ?? ""}
@@ -244,7 +285,7 @@ function TermCount({
               <button
                 type="button"
                 onClick={() => onRemove(code)}
-                className="shrink-0 text-xs font-bold underline decoration-2 underline-offset-2"
+                className="shrink-0 text-[11px] font-bold underline decoration-2 underline-offset-2"
               >
                 Remove
               </button>
@@ -269,7 +310,7 @@ function CategoryChip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border-2 border-[#142033] px-3 py-1 text-xs font-bold shadow-[2px_2px_0_#142033] ${
+      className={`rounded-full border-2 border-[#142033] px-2 py-0.5 text-[11px] font-bold shadow-[1px_1px_0_#142033] ${
         on ? "bg-[#c5e8c4]" : "bg-white hover:bg-[#fff6c8]"
       }`}
     >

@@ -89,7 +89,7 @@ export function TermSuggestions({
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div data-tutorial="extras" className="grid gap-4 scroll-mt-40 lg:grid-cols-3">
         <RequirementCard
           title="Arts credits"
           value={`${report.arts.have} of ${report.arts.need}`}
@@ -176,7 +176,7 @@ export function TermSuggestions({
         </RequirementCard>
       </div>
 
-      <div className="rounded-[28px] border-2 border-[#142033] bg-[#fff1a8] p-5 shadow-[4px_4px_0_#142033]">
+      <div data-tutorial="coop" className="scroll-mt-40 rounded-[28px] border-2 border-[#142033] bg-[#fff1a8] p-5 shadow-[4px_4px_0_#142033]">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h3 className="text-xl font-bold">Thinking about Co-op?</h3>
           <div className="flex flex-wrap gap-2">
@@ -215,7 +215,7 @@ export function TermSuggestions({
         </ul>
       </div>
 
-      <div>
+      <div data-tutorial="recommended" className="scroll-mt-40">
         <h3 className="text-xl font-bold">Suggested courses for the empty seats</h3>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
           Co-op prep stays on this list when this major has a first-year deadline. The rest are

@@ -13,6 +13,7 @@ import {
 import { loadApExams, saveApExams } from "@/lib/storage";
 import type { WinterAverage } from "@/lib/ubcgrades";
 import { AvgSticker } from "@/components/AvgSticker";
+import { PlannerTutorial } from "@/components/PlannerTutorial";
 import { YearPlanner } from "@/components/YearPlanner";
 import type { Specialization } from "@/lib/types";
 
@@ -33,11 +34,18 @@ export function MajorCoursePlan({
 }) {
   const [exams, setExams] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
     setExams(loadApExams());
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    setTourOpen(false);
+    const wait = window.setTimeout(() => setTourOpen(true), 880);
+    return () => window.clearTimeout(wait);
+  }, [specId]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -62,21 +70,30 @@ export function MajorCoursePlan({
         </div>
       )}
 
-      <section>
+      <section data-tutorial="calendar" className="scroll-mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-[#8a7018]">Your year one</p>
             <h2 className="mt-1 text-3xl font-bold tracking-tight">What to take</h2>
           </div>
-          <a
-            href={plan.calendarUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-semibold shadow-[2px_2px_0_#142033]"
-            title={plan.calendarLabel}
-          >
-            Official Calendar ↗
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setTourOpen(true)}
+              className="rounded-full border-2 border-[#142033] bg-[#fff8d6] px-4 py-1.5 text-sm font-semibold shadow-[2px_2px_0_#142033]"
+            >
+              How this works
+            </button>
+            <a
+              href={plan.calendarUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-semibold shadow-[2px_2px_0_#142033]"
+              title={plan.calendarLabel}
+            >
+              Official Calendar ↗
+            </a>
+          </div>
         </div>
         <p className="mt-2 text-base font-medium">{plan.heading}</p>
         {plan.intro ? (
@@ -138,6 +155,8 @@ export function MajorCoursePlan({
         averages={averages}
         onToggleExam={toggleExam}
       />
+
+      {tourOpen ? <PlannerTutorial onClose={() => setTourOpen(false)} /> : null}
     </div>
   );
 }

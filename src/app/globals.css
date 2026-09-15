@@ -292,6 +292,171 @@ html.from-major-suck .page-enter {
   }
 }
 
+@keyframes tutorial-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(7px);
+  }
+}
+
+@keyframes tutorial-place {
+  0%,
+  18% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  42%,
+  78% {
+    transform: translate(8.6rem, 0);
+    opacity: 1;
+  }
+  92%,
+  100% {
+    transform: translate(8.6rem, 0);
+    opacity: 0.2;
+  }
+}
+
+@keyframes tutorial-tap {
+  0%,
+  20% {
+    transform: scale(1);
+  }
+  28% {
+    transform: scale(0.92);
+  }
+  40%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tutorial-ap-on {
+  0%,
+  22% {
+    background: #fff;
+  }
+  38%,
+  100% {
+    background: #f2d45c;
+  }
+}
+
+@keyframes tutorial-ap-card {
+  0%,
+  22% {
+    background: #fff;
+  }
+  38%,
+  100% {
+    background: #ecfdf5;
+  }
+}
+
+@keyframes tutorial-fade-in {
+  0%,
+  22% {
+    opacity: 0;
+  }
+  38%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes tutorial-sixth {
+  0%,
+  30% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  45%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tutorial-warn {
+  0%,
+  42% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  55%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tutorial-cats {
+  0%,
+  28% {
+    max-height: 4.5rem;
+    opacity: 1;
+  }
+  48%,
+  100% {
+    max-height: 0;
+    opacity: 0;
+  }
+}
+
+.tutorial-loop-nudge {
+  animation: tutorial-nudge 1.6s ease-in-out infinite;
+}
+
+.tutorial-loop-place {
+  animation: tutorial-place 3.2s ease-in-out infinite;
+}
+
+.tutorial-loop-tap {
+  animation: tutorial-tap 3.2s ease-in-out infinite;
+}
+
+.tutorial-loop-ap {
+  animation: tutorial-ap-on 2.8s ease-in-out infinite;
+}
+
+.tutorial-loop-ap-card {
+  animation: tutorial-ap-card 2.8s ease-in-out infinite;
+}
+
+.tutorial-loop-fade {
+  animation: tutorial-fade-in 2.8s ease-in-out infinite;
+}
+
+.tutorial-loop-sixth {
+  animation: tutorial-sixth 3.2s ease-in-out infinite;
+}
+
+.tutorial-loop-warn {
+  animation: tutorial-warn 3.2s ease-in-out infinite;
+}
+
+.tutorial-loop-cats {
+  animation: tutorial-cats 3.4s ease-in-out infinite;
+  overflow: hidden;
+}
+
+@keyframes tutorial-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(242, 212, 92, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(242, 212, 92, 0);
+  }
+}
+
+.tutorial-loop-ring {
+  animation: tutorial-ring 1.8s ease-out infinite;
+}
+
 ::view-transition-group(site-header) {
   animation: none;
   z-index: 100;
@@ -315,7 +480,17 @@ html.from-major-suck .page-enter {
   .hero-zoom,
   .reveal,
   .ubc-rail-track,
-  html.from-major-suck .page-enter {
+  html.from-major-suck .page-enter,
+  .tutorial-loop-nudge,
+  .tutorial-loop-place,
+  .tutorial-loop-tap,
+  .tutorial-loop-ap,
+  .tutorial-loop-ap-card,
+  .tutorial-loop-fade,
+  .tutorial-loop-sixth,
+  .tutorial-loop-warn,
+  .tutorial-loop-cats,
+  .tutorial-loop-ring {
     animation: none;
     opacity: 1;
     transform: none;
