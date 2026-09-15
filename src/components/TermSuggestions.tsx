@@ -1,5 +1,6 @@
 "use client";
 
+import { AvgSticker } from "@/components/AvgSticker";
 import { courseByCode } from "@/lib/catalog";
 import { COOP_BASELINE, COOP_DEADLINES, COOP_REQUIREMENTS, coopPlan } from "@/lib/coop";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/lib/electives";
 import { termCredits } from "@/lib/term-plan";
 import type { Specialization, TermPlan } from "@/lib/types";
+import type { WinterAverage } from "@/lib/ubcgrades";
 
 const KIND_STYLE: Record<SuggestionKind, string> = {
   coop: "bg-[#c62828] text-white",
@@ -33,6 +35,7 @@ export function TermSuggestions({
   scienceOneOption,
   terms,
   ap,
+  averages,
   onAdd,
 }: {
   specId: string;
@@ -43,6 +46,7 @@ export function TermSuggestions({
   scienceOneOption: boolean;
   terms: TermPlan;
   ap: string[];
+  averages: Record<string, WinterAverage | null>;
   onAdd: (code: string, term: "term1" | "term2") => void;
 }) {
   const placed = [...terms.term1, ...terms.term2];
@@ -53,6 +57,7 @@ export function TermSuggestions({
     ap,
     planCodes,
     requiredRows,
+    averages,
   });
   const combined = specKind === "combined-major" || specKind === "combined-honours";
   const coop = coopPlan(specId);
@@ -109,15 +114,21 @@ export function TermSuggestions({
               two a year is a normal pace.
             </p>
           )}
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {BREADTH_CATEGORIES.map((category) => (
-              <li key={category.id}>
-                <BreadthChip
-                  label={category.short}
-                  covered={report.breadth.covered.includes(category.id)}
-                />
-              </li>
-            ))}
+          <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-2">
+            {BREADTH_CATEGORIES.map((category) => {
+              const apCredit = report.apCovered.includes(category.id);
+              return (
+                <li key={category.id} className="inline-flex items-center gap-1.5">
+                  <BreadthChip
+                    label={category.short}
+                    covered={report.breadth.covered.includes(category.id)}
+                  />
+                  {apCredit ? (
+                    <span className="text-xs font-bold text-emerald-800">AP credit</span>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
           {scienceOneOption ? (
             <p className="mt-3">
@@ -185,7 +196,7 @@ export function TermSuggestions({
       </div>
 
       <div>
-        <h3 className="text-xl font-bold">Suggested for the empty seats</h3>
+        <h3 className="text-xl font-bold">Suggested courses for the empty seats</h3>
         {report.suggestions.length === 0 ? (
           <p className="mt-2 rounded-[24px] border-2 border-dashed border-[#142033] bg-[#f4f1ea] px-5 py-4 text-base leading-7">
             Your plan already covers Arts credits, Science breadth, and the lab requirement. Anything
@@ -195,7 +206,11 @@ export function TermSuggestions({
           <ul className="mt-3 space-y-3">
             {report.suggestions.map((suggestion) => (
               <li key={suggestion.code}>
-                <SuggestionCard suggestion={suggestion} onAdd={onAdd} />
+                <SuggestionCard
+                  suggestion={suggestion}
+                  avg={averages[suggestion.code]}
+                  onAdd={onAdd}
+                />
               </li>
             ))}
           </ul>
@@ -286,17 +301,19 @@ function BreadthChip({ label, covered }: { label: string; covered: boolean }) {
 
 function SuggestionCard({
   suggestion,
+  avg,
   onAdd,
 }: {
   suggestion: Suggestion;
+  avg: WinterAverage | null | undefined;
   onAdd: (code: string, term: "term1" | "term2") => void;
 }) {
   const course = courseByCode(suggestion.code);
   const credits = course?.credits ?? 3;
   return (
     <div className="rounded-[24px] border-2 border-[#142033] bg-white p-4 shadow-[3px_3px_0_#142033] sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-start gap-4">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-2xl font-black tracking-tight">{suggestion.code}</p>
             <span
@@ -317,23 +334,24 @@ function SuggestionCard({
                 : " · either term"}
           </p>
           <p className="mt-2 text-base leading-7">{suggestion.detail}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onAdd(suggestion.code, "term1")}
+              className="rounded-full border-2 border-[#142033] bg-[#c5e8c4] px-4 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033]"
+            >
+              + Term 1
+            </button>
+            <button
+              type="button"
+              onClick={() => onAdd(suggestion.code, "term2")}
+              className="rounded-full border-2 border-[#142033] bg-[#c5e8c4] px-4 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033]"
+            >
+              + Term 2
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onAdd(suggestion.code, "term1")}
-            className="rounded-full border-2 border-[#142033] bg-[#c5e8c4] px-4 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033]"
-          >
-            + Term 1
-          </button>
-          <button
-            type="button"
-            onClick={() => onAdd(suggestion.code, "term2")}
-            className="rounded-full border-2 border-[#142033] bg-[#c5e8c4] px-4 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033]"
-          >
-            + Term 2
-          </button>
-        </div>
+        <AvgSticker code={suggestion.code} avg={avg} />
       </div>
     </div>
   );

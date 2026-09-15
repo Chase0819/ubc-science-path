@@ -17,6 +17,7 @@ import {
 } from "@/lib/term-plan";
 import { TermSuggestions } from "@/components/TermSuggestions";
 import type { Specialization, TermPlan } from "@/lib/types";
+import type { WinterAverage } from "@/lib/ubcgrades";
 
 export function YearPlanner({
   specId,
@@ -24,6 +25,7 @@ export function YearPlanner({
   plan,
   scienceOne,
   exams,
+  averages,
   onToggleExam,
 }: {
   specId: string;
@@ -31,6 +33,7 @@ export function YearPlanner({
   plan: FirstYearPlan;
   scienceOne: boolean;
   exams: string[];
+  averages: Record<string, WinterAverage | null>;
   onToggleExam: (id: string) => void;
 }) {
   const [terms, setTerms] = useState<TermPlan>({ term1: [], term2: [] });
@@ -221,6 +224,7 @@ export function YearPlanner({
         scienceOneOption={scienceOne}
         terms={terms}
         ap={[...ap]}
+        averages={averages}
         onAdd={send}
       />
     </section>

@@ -1,3 +1,5 @@
+import { breadthCategoryOf } from "./degree-requirements";
+
 export type ApExam = {
   id: string;
   name: string;
@@ -119,6 +121,16 @@ export function relevantApExams(courseCodes: string[]): ApExam[] {
   return AP_EXAMS.filter((exam) => {
     if (exam.id === "csa") {
       return ["CPSC 103", "CPSC 107", "CPSC 110"].some((code) => codes.has(code));
+    }
+    // Math, chemistry, and physics AP credit also fills Science breadth, even
+    // when this major does not require those first-year courses.
+    if (
+      exam.covers.some((code) => {
+        const category = breadthCategoryOf(code);
+        return category === "math" || category === "chem" || category === "phys";
+      })
+    ) {
+      return true;
     }
     return exam.covers.some((code) => {
       const family = EQUIVALENTS[code] ?? [code];

@@ -1,6 +1,7 @@
 import { coopPlan } from "./coop";
 import {
   ARTS_CREDITS_REQUIRED,
+  BREADTH_CATEGORIES,
   breadthCategoryOf,
   breadthLabel,
   breadthProgress,
@@ -8,6 +9,7 @@ import {
   labSatisfied,
   type BreadthId,
 } from "./degree-requirements";
+import type { WinterAverage } from "./ubcgrades";
 import type { Specialization } from "./types";
 
 /**
@@ -148,6 +150,8 @@ export type SuggestionInput = {
   planCodes: string[];
   /** The required groups, so areas the year covers by definition are not suggested again. */
   requiredRows: { alternatives: string[][] }[];
+  /** Latest winter class averages, used to rank Arts suggestions. */
+  averages?: Record<string, WinterAverage | null>;
 };
 
 /**
@@ -203,9 +207,21 @@ export type SuggestionReport = {
   /** Credits counted toward the 12-credit Arts Requirement. */
   arts: { have: number; need: number };
   breadth: ReturnType<typeof breadthProgress>;
+  /** Breadth areas opened by AP credit rather than a course in the timetable. */
+  apCovered: BreadthId[];
   lab: { satisfied: boolean };
   suggestions: Suggestion[];
 };
+
+/** First-year courses the empty-seat recommender might offer. */
+export function electiveSuggestionCodes(): string[] {
+  return [
+    ...ARTS_PICKS.map((item) => item.code),
+    ...Object.values(BREADTH_PICKS).flat(),
+    ...LAB_PICKS,
+    "CPSC 210",
+  ];
+}
 
 /**
  * Breadth is scored on courses you actually hold, so a required option you have
@@ -214,6 +230,10 @@ export type SuggestionReport = {
 export function suggestElectives(input: SuggestionInput): SuggestionReport {
   const held = [...new Set([...input.placed, ...input.ap])];
   const heldSet = new Set(held);
+  const apSet = new Set(input.ap);
+  const apCovered = BREADTH_CATEGORIES.filter((category) =>
+    [...apSet].some((code) => breadthCategoryOf(code) === category.id),
+  ).map((category) => category.id);
   const breadth = breadthProgress(held, input.kind, guaranteedBreadth(input.requiredRows));
   const artsHave = artsCredits(held) + guaranteedArtsCredits(input.requiredRows, heldSet);
   const lab = labSatisfied(held) || guaranteedLab(input.requiredRows);
@@ -286,7 +306,13 @@ export function suggestElectives(input: SuggestionInput): SuggestionReport {
       MAX_ARTS_SUGGESTIONS,
       Math.ceil((ARTS_CREDITS_REQUIRED - artsHave) / 3),
     );
-    for (const pick of ARTS_PICKS.filter((item) => !heldSet.has(item.code)).slice(0, wanted)) {
+    const artsLeft = ARTS_PICKS.filter((item) => !heldSet.has(item.code)).sort((a, b) => {
+      const scoreA = input.averages?.[a.code]?.average ?? -1;
+      const scoreB = input.averages?.[b.code]?.average ?? -1;
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      return ARTS_PICKS.indexOf(a) - ARTS_PICKS.indexOf(b);
+    });
+    for (const pick of artsLeft.slice(0, wanted)) {
       push(pick.code, "arts", "Arts requirement", pick.detail, "either");
     }
   }
@@ -294,6 +320,7 @@ export function suggestElectives(input: SuggestionInput): SuggestionReport {
   return {
     arts: { have: artsHave, need: ARTS_CREDITS_REQUIRED },
     breadth,
+    apCovered,
     lab: { satisfied: lab },
     suggestions,
   };
