@@ -101,7 +101,7 @@ export function TermSuggestions({
           <p>
             Every B.Sc. needs 12 credits from the Faculty of Arts before you graduate. Writing
             courses you use for the Communication Requirement — SCIE 113, WRDS 150, an ENGL course —
-            do not count twice.
+            do not count twice. Physical geography (GEOS) and science-numbered PSYC do not count.
           </p>
           <p className="mt-2">
             You do not have to start this year. One Arts course now is a recommendation, not a

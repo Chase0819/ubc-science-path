@@ -24,7 +24,7 @@ const COPY: Record<BrowseKind, { title: string; intro: string }> = {
   arts: {
     title: "Arts credits",
     intro:
-      "First-year Faculty of Arts courses that do not need another UBC course first — including beginner language courses, which count toward the 12-credit Arts Requirement. Writing courses you use for Communication — ENGL, WRDS, SCIE 113 — do not count twice. Language placement still applies: skip a beginner course if you already speak it.",
+      "Only courses that count toward the B.Sc. 12-credit Arts Requirement: offered by the Faculty of Arts, with no other UBC course required first. GEOG counts; GEOS/GEOB does not. PSYC 101 and 102 count; science-numbered PSYC does not. ENGL and WRDS used for Communication do not count twice. Music is limited to history, theory, ethnomusicology, and composition. Language placement still applies if you already speak it.",
   },
   breadth: {
     title: "Science breadth",

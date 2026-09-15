@@ -72,17 +72,37 @@ export function benchCourses(
   placed: Set<string>,
   ap: Set<string>,
 ): string[] {
-  const codes: string[] = [];
+  return benchGroups(rows, placed, ap).flatMap((group) => group.alternatives.flat());
+}
+
+export type BenchGroup = {
+  display: string;
+  credits: number;
+  pickOne: boolean;
+  alternatives: string[][];
+};
+
+/** Unplaced required courses, still in Calendar groups so “or” options stay together. */
+export function benchGroups(
+  rows: Extract<FirstYearRow, { kind: "courses" }>[],
+  placed: Set<string>,
+  ap: Set<string>,
+): BenchGroup[] {
+  const groups: BenchGroup[] = [];
   for (const row of rows) {
     if (slotSatisfied(row, placed, ap)) continue;
-    for (const alt of row.alternatives) {
-      for (const code of alt) {
-        if (placed.has(code) || ap.has(code) || codes.includes(code)) continue;
-        codes.push(code);
-      }
-    }
+    const alternatives = row.alternatives
+      .map((alt) => alt.filter((code) => !placed.has(code) && !ap.has(code)))
+      .filter((alt) => alt.length > 0);
+    if (alternatives.length === 0) continue;
+    groups.push({
+      display: row.display,
+      credits: row.credits,
+      pickOne: row.alternatives.length > 1,
+      alternatives,
+    });
   }
-  return codes;
+  return groups;
 }
 
 export function suggestedTerm(code: string): "term1" | "term2" {

@@ -15,6 +15,63 @@ export const CALENDAR_LOWER_LEVEL =
 
 export const ARTS_CREDITS_REQUIRED = 12;
 
+/**
+ * Subject codes housed in the Faculty of Arts (Calendar course descriptions /
+ * Arts Ways of Knowing lists). A B.Sc. Arts credit must be offered by this
+ * faculty — not Science, Applied Science, Forestry, LFS, Education, etc.
+ */
+const FACULTY_OF_ARTS_SUBJECTS = new Set([
+  "ACAM", "AFST", "AMNE", "ANTH", "ARBC", "ARBM", "ARCL", "ARTH", "ARTS", "ASIA",
+  "ASIX", "ASL", "ASLA", "ASTU", "CAP", "CDST", "CENS", "CHIN", "CINE", "CLST",
+  "CNRS", "CNTO", "CRWR", "CSIS", "CTLN", "DANI", "ECON", "ENGL", "ENST", "FIPR",
+  "FIST", "FMST", "FNEL", "FNIS", "FREN", "GEOG", "GERM", "GERN", "GMST", "GREK",
+  "GRSJ", "HEBR", "HINU", "HIST", "INFO", "ITAL", "ITST", "JAPN", "JRNL", "JWST",
+  "KORN", "LASO", "LAST", "LATN", "LING", "MDIA", "MDVL", "MES", "MUSC", "NEPL",
+  "NEST", "NORD", "PERS", "PHIL", "POLI", "POLS", "PORT", "PPGA", "PSYC", "PUNJ",
+  "RELG", "RGST", "RMST", "RUSS", "SANS", "SCAN", "SEAL", "SLAV", "SOAL", "SOCI",
+  "SOWK", "SPAN", "SWAH", "SWED", "THFL", "THTR", "TIBT", "UKRN", "URST", "VISA",
+  "WRDS", "YDSH",
+]);
+
+/** WRDS / ENGL used for Communication may not also satisfy the Arts Requirement. */
+const COMMUNICATION_ARTS_SUBJECTS = new Set(["ENGL", "WRDS"]);
+
+/**
+ * B.Sc. Calendar: only music history, theory, ethnomusicology, or composition
+ * (plus ensemble performance, which we do not list). Music technology and
+ * B.Mus. skills courses do not count.
+ */
+const MUSC_ARTS_FOR_SCIENCE = new Set([
+  "MUSC 103",
+  "MUSC 120",
+  "MUSC 128",
+]);
+
+const ASIC_ARTS_FOR_SCIENCE = new Set(["ASIC 200", "ASIC 220"]);
+
+function psycHasScienceCredit(number: number): boolean {
+  if (number === 348 || number === 448) return true;
+  const lastTwo = number % 100;
+  return lastTwo >= 60 && lastTwo <= 89;
+}
+
+/**
+ * Whether a course can count toward the B.Sc. 12-credit Arts Requirement.
+ * Source: Calendar, Science and Arts Requirements — Faculty of Arts courses,
+ * excluding GEOS/GEOB, science-credit PSYC, and Communication Arts courses.
+ */
+export function countsAsBscArtsCredit(code: string): boolean {
+  const parsed = parseCode(code);
+  if (!parsed) return false;
+  const clean = `${parsed.subject} ${parsed.number}`;
+  if (ASIC_ARTS_FOR_SCIENCE.has(clean)) return true;
+  if (parsed.subject === "GEOS" || parsed.subject === "GEOB") return false;
+  if (COMMUNICATION_ARTS_SUBJECTS.has(parsed.subject)) return false;
+  if (parsed.subject === "PSYC" && psycHasScienceCredit(parsed.number)) return false;
+  if (parsed.subject === "MUSC") return MUSC_ARTS_FOR_SCIENCE.has(clean);
+  return FACULTY_OF_ARTS_SUBJECTS.has(parsed.subject);
+}
+
 export type BreadthId = "math" | "chem" | "phys" | "life" | "stat" | "cpsc" | "earth";
 
 export type BreadthCategory = {

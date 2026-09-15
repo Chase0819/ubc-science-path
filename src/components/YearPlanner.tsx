@@ -6,7 +6,7 @@ import { courseByCode } from "@/lib/catalog";
 import type { FirstYearPlan } from "@/lib/first-year-plans";
 import { loadTermPlan, saveTermPlan } from "@/lib/storage";
 import {
-  benchCourses,
+  benchGroups,
   courseRows,
   moveCourse,
   placedSet,
@@ -15,7 +15,9 @@ import {
   termCredits,
   type TermId,
 } from "@/lib/term-plan";
+import { OverloadNotice } from "@/components/OverloadNotice";
 import { TermSuggestions } from "@/components/TermSuggestions";
+import { COURSES_PER_TERM } from "@/lib/electives";
 import type { Specialization, TermPlan } from "@/lib/types";
 import type { WinterAverage } from "@/lib/ubcgrades";
 
@@ -39,6 +41,7 @@ export function YearPlanner({
   const [terms, setTerms] = useState<TermPlan>({ term1: [], term2: [] });
   const [hydrated, setHydrated] = useState(false);
   const [over, setOver] = useState<TermId | null>(null);
+  const [overload, setOverload] = useState<{ term: TermId; count: number } | null>(null);
 
   const rows = useMemo(() => courseRows(plan), [plan]);
   const pageCodes = useMemo(
@@ -49,7 +52,7 @@ export function YearPlanner({
   const ap = coursesCoveredByExams(exams);
   const placed = placedSet(terms);
   const progress = planProgress(rows, placed, ap);
-  const bench = benchCourses(rows, placed, ap);
+  const groups = benchGroups(rows, placed, ap);
   const leftover = progress.total - progress.done;
   const apKey = exams.slice().sort().join(",");
   /** Suggested electives are not part of the required list, so removing them drops them for good. */
@@ -85,7 +88,15 @@ export function YearPlanner({
   }
 
   function send(code: string, dest: TermId) {
-    persist(moveCourse(terms, code, dest));
+    const next = moveCourse(terms, code, dest);
+    persist(next);
+    if (
+      dest !== "bench" &&
+      !terms[dest].includes(code) &&
+      next[dest].length > COURSES_PER_TERM
+    ) {
+      setOverload({ term: dest, count: next[dest].length });
+    }
   }
 
   function onDrop(dest: TermId, event: React.DragEvent) {
@@ -161,29 +172,76 @@ export function YearPlanner({
       <DropZone
         id="bench"
         title="Still to place"
-        hint="These still need Term 1 or Term 2."
+        hint="Grouped the way the Calendar lists them. Pick one option in an “or” group — you do not take every course here."
         active={over === "bench"}
         onDragOver={() => setOver("bench")}
         onDragLeave={() => setOver(null)}
         onDrop={(event) => onDrop("bench", event)}
       >
-        {bench.length === 0 ? (
+        {groups.length === 0 ? (
           <p className="text-sm font-medium text-[var(--muted)]">
             Nothing waiting — every required group is covered or already in a term.
           </p>
         ) : (
-          <ul className="flex flex-wrap gap-3">
-            {bench.map((code) => (
-              <li key={code}>
-                <CourseChip
-                  code={code}
-                  hint={suggestedTerm(code) === "term1" ? "usually T1" : "usually T2"}
-                  onTerm1={() => send(code, "term1")}
-                  onTerm2={() => send(code, "term2")}
-                />
-              </li>
-            ))}
-          </ul>
+          <div>
+            {groups.map((group, index) => {
+              const singles = group.alternatives
+                .filter((alt) => alt.length === 1)
+                .map((alt) => alt[0]);
+              const bundles = group.alternatives.filter((alt) => alt.length > 1);
+              return (
+                <div
+                  key={`${group.display}-${index}`}
+                  className={index === 0 ? "" : "mt-4 border-t-2 border-[#142033] pt-4"}
+                >
+                  <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="font-bold leading-5">{group.display}</p>
+                    <p className="text-xs font-semibold text-[var(--muted)]">
+                      {group.credits} cr · {group.pickOne ? "pick one option" : "take this"}
+                    </p>
+                  </div>
+                  {singles.length > 0 ? (
+                    <ul className="flex flex-wrap gap-3">
+                      {singles.map((code) => (
+                        <li key={code}>
+                          <CourseChip
+                            code={code}
+                            hint={suggestedTerm(code) === "term1" ? "usually T1" : "usually T2"}
+                            onTerm1={() => send(code, "term1")}
+                            onTerm2={() => send(code, "term2")}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {bundles.map((alt) => (
+                    <div key={alt.join("-")} className={singles.length > 0 ? "mt-2" : ""}>
+                      {singles.length > 0 || bundles[0] !== alt ? (
+                        <p className="mb-2 text-xs font-black uppercase tracking-wide text-[var(--muted)]">
+                          or
+                        </p>
+                      ) : null}
+                      <ul className="flex flex-wrap gap-3">
+                        {alt.map((code) => (
+                          <li key={code}>
+                            <CourseChip
+                              code={code}
+                              hint={suggestedTerm(code) === "term1" ? "usually T1" : "usually T2"}
+                              onTerm1={() => send(code, "term1")}
+                              onTerm2={() => send(code, "term2")}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-1 text-xs font-medium text-[var(--muted)]">
+                        Take both — this is one Calendar option.
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
         )}
       </DropZone>
 
@@ -228,6 +286,14 @@ export function YearPlanner({
         onAdd={send}
         onRemove={(code) => send(code, "bench")}
       />
+
+      {overload ? (
+        <OverloadNotice
+          term={overload.term}
+          count={overload.count}
+          onClose={() => setOverload(null)}
+        />
+      ) : null}
     </section>
   );
 }
