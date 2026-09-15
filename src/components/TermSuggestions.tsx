@@ -1,5 +1,6 @@
 "use client";
 
+import { COOP_BASELINE, COOP_DEADLINES, COOP_REQUIREMENTS, coopPlan } from "@/lib/coop";
 import {
   BREADTH_CATEGORIES,
   CALENDAR_BREADTH,
@@ -39,6 +40,7 @@ export function TermSuggestions({
     requiredRows,
   });
   const combined = specKind === "combined-major" || specKind === "combined-honours";
+  const coop = coopPlan(specId);
 
   return (
     <section className="space-y-6">
@@ -48,7 +50,7 @@ export function TermSuggestions({
         <p className="mt-2 max-w-3xl text-base leading-7 text-[var(--muted)]">
           Most first-year students carry four or five courses a term. Your eligibility list rarely
           fills that, and the leftover seats are not free — the B.Sc. also wants Arts credits,
-          Science breadth, and a lab.
+          Science breadth, and a lab. Co-op, if you want it, has its own first-year timing.
         </p>
       </div>
 
@@ -126,6 +128,45 @@ export function TermSuggestions({
             </p>
           ) : null}
         </RequirementCard>
+      </div>
+
+      <div className="rounded-[28px] border-2 border-[#142033] bg-[#fff1a8] p-5 shadow-[4px_4px_0_#142033]">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h3 className="text-xl font-bold">Thinking about Co-op?</h3>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={COOP_REQUIREMENTS}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-semibold shadow-[2px_2px_0_#142033]"
+            >
+              Application rules ↗
+            </a>
+            <a
+              href={COOP_DEADLINES}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-semibold shadow-[2px_2px_0_#142033]"
+            >
+              Deadlines ↗
+            </a>
+          </div>
+        </div>
+        <p className="mt-3 text-base leading-7">
+          <span className="font-bold">{coop.program}</span> — apply in {coop.applyIn}.
+        </p>
+        <p className="mt-2 text-base leading-7">{coop.firstYear}</p>
+        {coop.addCourses && coop.addCourses.length > 0 ? (
+          <p className="mt-2 text-base leading-7">
+            Extra course to line up:{" "}
+            <span className="font-bold">{coop.addCourses.join(", ")}</span>.
+          </p>
+        ) : null}
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-6 text-[#5b4a12]">
+          {COOP_BASELINE.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
       </div>
     </section>
   );
