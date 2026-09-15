@@ -221,6 +221,7 @@ export function YearPlanner({
         scienceOneOption={scienceOne}
         terms={terms}
         ap={[...ap]}
+        onAdd={send}
       />
     </section>
   );
