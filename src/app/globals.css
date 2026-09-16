@@ -457,6 +457,12 @@ html.from-major-suck .page-enter {
   animation: tutorial-ring 1.8s ease-out infinite;
 }
 
+html.tutorial-no-scroll,
+html.tutorial-no-scroll body {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
 ::view-transition-group(site-header) {
   animation: none;
   z-index: 100;
