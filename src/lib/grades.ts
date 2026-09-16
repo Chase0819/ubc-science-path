@@ -34,6 +34,17 @@ export function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+export function creditWeighted(
+  rows: { percent: number; credits: number }[],
+): { percent: number; credits: number; gpa: number } | null {
+  const credits = rows.reduce((sum, row) => sum + row.credits, 0);
+  if (credits <= 0) return null;
+  const percent = rows.reduce((sum, row) => sum + row.percent * row.credits, 0) / credits;
+  const gpa =
+    rows.reduce((sum, row) => sum + gpaFromPercent(row.percent) * row.credits, 0) / credits;
+  return { percent, credits, gpa };
+}
+
 export function componentPercent(
   components: { weight: number; score: number | "" }[],
 ): number | null {

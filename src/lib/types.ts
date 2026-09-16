@@ -35,10 +35,13 @@ export type GradeComponent = {
   score: number | "";
 };
 
+export type CalcTerm = "term1" | "term2";
+
 export type CalculatorCourse = {
   id: string;
   code: string;
   credits: number;
+  term: CalcTerm;
   components: GradeComponent[];
   percentOverride: number | "";
 };

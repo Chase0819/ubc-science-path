@@ -537,3 +537,7 @@ html.tutorial-no-scroll body {
   filter: blur(8px);
   z-index: -1;
 }
+
+.planner-chill.calculator-chill::before {
+  background: #c5e8c4;
+}

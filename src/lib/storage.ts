@@ -1,4 +1,5 @@
 import type { ApState, CalculatorCourse, PlannerState, TermPlan } from "./types";
+import { asCalcTerm, winterNow } from "./winter";
 
 const CALC_KEY = "usp.calculator";
 const PLAN_KEY = "usp.planner";
@@ -14,8 +15,39 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
+export function newCalcId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `row-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function uniquifyCourses(courses: CalculatorCourse[], fallback: CalculatorCourse["term"]) {
+  const seen = new Set<string>();
+  function take(id: string) {
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      return id;
+    }
+    let next = newCalcId();
+    while (seen.has(next)) next = newCalcId();
+    seen.add(next);
+    return next;
+  }
+  return courses.map((course) => ({
+    ...course,
+    id: take(course.id),
+    term: asCalcTerm(course.term, fallback),
+    components: (course.components ?? []).map((row) => ({
+      ...row,
+      id: take(row.id),
+    })),
+  }));
+}
+
 export function loadCalculator(): CalculatorCourse[] {
-  return readJson<CalculatorCourse[]>(CALC_KEY, []);
+  const fallback = winterNow().term;
+  return uniquifyCourses(readJson<CalculatorCourse[]>(CALC_KEY, []), fallback);
 }
 
 export function saveCalculator(courses: CalculatorCourse[]) {
