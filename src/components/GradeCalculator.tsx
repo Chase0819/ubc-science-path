@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   calcCourseByCode,
   searchCalcCourses,
@@ -10,12 +10,19 @@ import {
   componentPercent,
   creditWeighted,
   letterFromPercent,
+  neededPartnerAverage,
+  remainingAverageNeeded,
   remainingNeeded,
   round1,
   round2,
 } from "@/lib/grades";
 import { saveCalculator, saveSessional, loadCalculator, newCalcId } from "@/lib/storage";
-import type { CalcTerm, CalculatorCourse, GradeComponent } from "@/lib/types";
+import type {
+  CalcTerm,
+  CalculatorCourse,
+  CalculatorTargets,
+  GradeComponent,
+} from "@/lib/types";
 import { winterNow } from "@/lib/winter";
 import { AverageAnalysis } from "@/components/AverageAnalysis";
 import { CalculatorTutorial } from "@/components/CalculatorTutorial";
@@ -79,6 +86,11 @@ const TERM_META: Record<
 
 export function GradeCalculator() {
   const [courses, setCourses] = useState<CalculatorCourse[]>([]);
+  const [targets, setTargets] = useState<CalculatorTargets>({
+    term1: "",
+    term2: "",
+    combined: "",
+  });
   const [analysis, setAnalysis] = useState<"term1" | "term2" | "combined" | null>(null);
   const [ready, setReady] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
@@ -87,7 +99,8 @@ export function GradeCalculator() {
 
   useEffect(() => {
     const saved = loadCalculator();
-    setCourses(saved.length ? saved : [emptyCourse(winterNow().term)]);
+    setCourses(saved.courses.length ? saved.courses : [emptyCourse(winterNow().term)]);
+    setTargets(saved.targets);
     setReady(true);
   }, []);
 
@@ -102,8 +115,8 @@ export function GradeCalculator() {
       skipSave.current = false;
       return;
     }
-    saveCalculator(courses);
-  }, [courses]);
+    saveCalculator({ courses, targets });
+  }, [courses, targets]);
 
   const graded = useMemo(() => {
     return courses
@@ -144,6 +157,14 @@ export function GradeCalculator() {
     [courses],
   );
 
+  const winterPartner = winterPartnerHint(
+    term1,
+    term2,
+    term1Courses,
+    term2Courses,
+    targets.combined,
+  );
+
   useEffect(() => {
     if (combinedPercent !== null) saveSessional(round1(combinedPercent));
   }, [combinedPercent]);
@@ -158,6 +179,10 @@ export function GradeCalculator() {
           stats={term1}
           entries={term1Entries}
           current={clock.phase === "term1"}
+          target={targets.term1}
+          leftover={leftoverForTarget(term1Courses, targets.term1)}
+          partner={winterPartner?.other === "Term 1" ? winterPartner : null}
+          onTarget={(target) => setTargets((current) => ({ ...current, term1: target }))}
           onAnalyse={() => setAnalysis("term1")}
         />
         <AverageCard
@@ -166,6 +191,10 @@ export function GradeCalculator() {
           stats={term2}
           entries={term2Entries}
           current={clock.phase === "term2"}
+          target={targets.term2}
+          leftover={leftoverForTarget(term2Courses, targets.term2)}
+          partner={winterPartner?.other === "Term 2" ? winterPartner : null}
+          onTarget={(target) => setTargets((current) => ({ ...current, term2: target }))}
           onAnalyse={() => setAnalysis("term2")}
         />
         <AverageCard
@@ -174,6 +203,10 @@ export function GradeCalculator() {
           stats={combined}
           entries={combinedEntries}
           combined
+          target={targets.combined}
+          leftover={leftoverForTarget(codedCourses, targets.combined)}
+          partner={winterPartner}
+          onTarget={(target) => setTargets((current) => ({ ...current, combined: target }))}
           onAnalyse={() => setAnalysis("combined")}
         />
       </div>
@@ -496,6 +529,10 @@ function AverageCard({
   entries,
   current,
   combined,
+  target,
+  leftover,
+  partner,
+  onTarget,
   onAnalyse,
 }: {
   kicker: string;
@@ -504,8 +541,19 @@ function AverageCard({
   entries: AverageEntry[];
   current?: boolean;
   combined?: boolean;
+  target: number | "";
+  leftover: { remainingCredits: number; neededOnRemaining: number } | null;
+  partner: WinterPartnerHint | null;
+  onTarget: (target: number | "") => void;
   onAnalyse: () => void;
 }) {
+  const targetNumber = typeof target === "number" ? target : null;
+  const gap =
+    stats !== null && targetNumber !== null && !(combined && partner)
+      ? round1(stats.percent - targetNumber)
+      : null;
+  const leftoverUseful =
+    leftover && targetNumber !== null && (!partner || leftover.remainingCredits !== partner.credits);
   return (
     <div
       data-tutorial={combined ? "combined" : undefined}
@@ -513,11 +561,40 @@ function AverageCard({
         combined ? "bg-[#f2d45c]" : current ? "bg-[#d8f0d7]" : "bg-white"
       }`}
     >
-      <p className="text-xs font-bold tracking-wide text-[#3d7a45] uppercase">{kicker}</p>
-      <p className="mt-1 text-sm font-bold">{label}</p>
-      <p className="mt-2 text-3xl font-black tabular-nums tracking-tight">
-        {stats === null ? "—" : `${round1(stats.percent)}%`}
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold tracking-wide text-[#3d7a45] uppercase">{kicker}</p>
+          <p className="mt-1 text-sm font-bold">{label}</p>
+        </div>
+        <label className="grid shrink-0 gap-1 text-[10px] font-bold tracking-wide uppercase">
+          Target %
+          <input
+            className="w-16 rounded-xl border-2 border-[#142033] bg-white px-2 py-1.5 text-sm font-bold outline-none"
+            type="number"
+            min={0}
+            max={100}
+            placeholder="—"
+            value={target}
+            onChange={(event) =>
+              onTarget(event.target.value === "" ? "" : Number(event.target.value))
+            }
+          />
+        </label>
+      </div>
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <p className="text-3xl font-black tabular-nums tracking-tight">
+          {stats === null ? "—" : `${round1(stats.percent)}%`}
+        </p>
+        {gap !== null ? (
+          <p className={`text-base font-black tabular-nums ${pullClass(gap)}`}>
+            {gap === 0
+              ? "on target"
+              : gap > 0
+                ? `+${gap}% above`
+                : `−${Math.abs(gap)}% below`}
+          </p>
+        ) : null}
+      </div>
       <p className="mt-2 text-xs font-semibold leading-5 text-[var(--muted)]">
         {stats === null
           ? "Add scores to count this average."
@@ -525,6 +602,14 @@ function AverageCard({
             ? `${stats.credits} cr · GPA ${round2(stats.gpa).toFixed(2)} · saved for outlook`
             : `${stats.credits} cr · GPA ${round2(stats.gpa).toFixed(2)}`}
       </p>
+      {partner ? <p className="mt-1 text-xs font-semibold leading-5">{partnerCopy(partner, combined)}</p> : null}
+      {leftoverUseful && leftover && targetNumber !== null ? (
+        <p className="mt-1 text-xs font-semibold text-[var(--muted)]">
+          Need{" "}
+          <strong className="text-[var(--ink)]">{round1(leftover.neededOnRemaining)}%</strong> on
+          leftover {leftover.remainingCredits} cr for {targetNumber}%.
+        </p>
+      ) : null}
       {entries.length > 0 ? (
         <ul className="mt-3 max-h-40 space-y-1.5 overflow-y-auto text-xs font-bold">
           {entries.map((row) => (
@@ -836,6 +921,146 @@ function CourseSearch({
         </ul>
       ) : null}
     </div>
+  );
+}
+
+function leftoverForTarget(
+  courses: CalculatorCourse[],
+  target: number | "",
+): { remainingCredits: number; neededOnRemaining: number } | null {
+  if (typeof target !== "number") return null;
+  return remainingAverageNeeded(
+    courses
+      .filter((course) => course.code.trim() && (course.credits || 0) > 0)
+      .map((course) => ({ percent: coursePercent(course), credits: course.credits || 0 })),
+    target,
+  );
+}
+
+type WinterPartnerHint = {
+  other: "Term 1" | "Term 2";
+  current: "Term 1" | "Term 2";
+  currentPercent: number;
+  needed: number;
+  credits: number;
+  assumed: boolean;
+  combinedTarget: number;
+  locked: boolean;
+};
+
+function plannedCredits(courses: CalculatorCourse[]): number {
+  return courses.reduce((sum, course) => {
+    if (!course.code.trim() || !(course.credits > 0)) return sum;
+    return sum + course.credits;
+  }, 0);
+}
+
+function courseSettled(course: CalculatorCourse): boolean {
+  if (coursePercent(course) === null) return false;
+  return remainingNeeded(course.components, 0) === null;
+}
+
+function termLocked(courses: CalculatorCourse[]): boolean {
+  const rows = courses.filter((course) => course.code.trim() && (course.credits || 0) > 0);
+  return rows.length > 0 && rows.every(courseSettled);
+}
+
+function winterPartnerHint(
+  term1: { percent: number; credits: number } | null,
+  term2: { percent: number; credits: number } | null,
+  term1Courses: CalculatorCourse[],
+  term2Courses: CalculatorCourse[],
+  combinedTarget: number | "",
+): WinterPartnerHint | null {
+  if (typeof combinedTarget !== "number") return null;
+  const t1Locked = term1 !== null && termLocked(term1Courses);
+  const t2Locked = term2 !== null && termLocked(term2Courses);
+  if (t1Locked && t2Locked) return null;
+
+  if (term1 && !t2Locked) {
+    const planned = plannedCredits(term2Courses);
+    const credits = planned > 0 ? planned : term1.credits;
+    const needed = neededPartnerAverage(term1, credits, combinedTarget);
+    if (needed === null) return null;
+    return {
+      other: "Term 2",
+      current: "Term 1",
+      currentPercent: term1.percent,
+      needed,
+      credits,
+      assumed: planned <= 0,
+      combinedTarget,
+      locked: t1Locked,
+    };
+  }
+
+  if (term2 && !t1Locked) {
+    const planned = plannedCredits(term1Courses);
+    const credits = planned > 0 ? planned : term2.credits;
+    const needed = neededPartnerAverage(term2, credits, combinedTarget);
+    if (needed === null) return null;
+    return {
+      other: "Term 1",
+      current: "Term 2",
+      currentPercent: term2.percent,
+      needed,
+      credits,
+      assumed: planned <= 0,
+      combinedTarget,
+      locked: t2Locked,
+    };
+  }
+
+  return null;
+}
+
+function partnerCopy(partner: WinterPartnerHint, combined?: boolean): ReactNode {
+  const score = `${round1(partner.needed)}%`;
+  const stay = `${round1(partner.currentPercent)}%`;
+  const unreachable = partner.needed > 100;
+  const already = partner.needed <= 0;
+  const reach = unreachable
+    ? " — not reachable at this credit load."
+    : already
+      ? " — already above that winter target."
+      : ".";
+
+  const load = partner.assumed ? ` if it is also ${partner.credits} cr` : ` on ${partner.credits} cr`;
+
+  if (!combined) {
+    if (partner.locked) {
+      return (
+        <>
+          Need <strong className="text-[var(--ink)]">{score}</strong> here{load}, for your{" "}
+          {partner.combinedTarget}% winter average{reach}
+        </>
+      );
+    }
+    return (
+      <>
+        Need <strong className="text-[var(--ink)]">{score}</strong> here if {partner.current} stays at {stay}
+        {load}, for your {partner.combinedTarget}% winter average{reach}
+      </>
+    );
+  }
+
+  if (partner.locked) {
+    return (
+      <>
+        {partner.other} needs <strong className="text-[var(--ink)]">{score}</strong>
+        {load}, for your {partner.combinedTarget}% winter average{reach}
+        {partner.assumed ? ` Add ${partner.other} courses to lock the credits.` : ""}
+      </>
+    );
+  }
+
+  return (
+    <>
+      If {partner.current} stays at {stay}, {partner.other} needs{" "}
+      <strong className="text-[var(--ink)]">{score}</strong>
+      {load}, for your {partner.combinedTarget}% winter average{reach}
+      {partner.assumed ? ` Add ${partner.other} courses to lock the credits.` : ""}
+    </>
   );
 }
 

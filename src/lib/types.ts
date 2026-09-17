@@ -47,6 +47,17 @@ export type CalculatorCourse = {
   percentOverride: number | "";
 };
 
+export type CalculatorTargets = {
+  term1: number | "";
+  term2: number | "";
+  combined: number | "";
+};
+
+export type CalculatorState = {
+  courses: CalculatorCourse[];
+  targets: CalculatorTargets;
+};
+
 export type PlannerState = {
   completed: string[];
   intended: string[];

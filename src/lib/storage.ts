@@ -1,4 +1,11 @@
-import type { ApState, CalculatorCourse, PlannerState, TermPlan } from "./types";
+import type {
+  ApState,
+  CalculatorCourse,
+  CalculatorState,
+  CalculatorTargets,
+  PlannerState,
+  TermPlan,
+} from "./types";
 import { asCalcTerm, winterNow } from "./winter";
 
 const CALC_KEY = "usp.calculator";
@@ -52,13 +59,45 @@ function normalizeTarget(value: unknown): number | "" {
   return 80;
 }
 
-export function loadCalculator(): CalculatorCourse[] {
-  const fallback = winterNow().term;
-  return uniquifyCourses(readJson<CalculatorCourse[]>(CALC_KEY, []), fallback);
+function normalizeTermTarget(value: unknown): number | "" {
+  if (value === "") return "";
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return "";
 }
 
-export function saveCalculator(courses: CalculatorCourse[]) {
-  localStorage.setItem(CALC_KEY, JSON.stringify(courses));
+const EMPTY_TARGETS: CalculatorTargets = { term1: "", term2: "", combined: "" };
+
+function normalizeTargets(value: unknown): CalculatorTargets {
+  if (!value || typeof value !== "object") return EMPTY_TARGETS;
+  const raw = value as Partial<CalculatorTargets>;
+  return {
+    term1: normalizeTermTarget(raw.term1),
+    term2: normalizeTermTarget(raw.term2),
+    combined: normalizeTermTarget(raw.combined),
+  };
+}
+
+export function loadCalculator(): CalculatorState {
+  const fallback = winterNow().term;
+  const raw = readJson<unknown>(CALC_KEY, []);
+  if (Array.isArray(raw)) {
+    return {
+      courses: uniquifyCourses(raw as CalculatorCourse[], fallback),
+      targets: EMPTY_TARGETS,
+    };
+  }
+  if (raw && typeof raw === "object" && Array.isArray((raw as CalculatorState).courses)) {
+    const state = raw as CalculatorState;
+    return {
+      courses: uniquifyCourses(state.courses, fallback),
+      targets: normalizeTargets(state.targets),
+    };
+  }
+  return { courses: [], targets: EMPTY_TARGETS };
+}
+
+export function saveCalculator(state: CalculatorState) {
+  localStorage.setItem(CALC_KEY, JSON.stringify(state));
 }
 
 export function loadPlanner(): PlannerState {

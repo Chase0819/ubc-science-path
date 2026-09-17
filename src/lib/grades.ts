@@ -61,6 +61,36 @@ export function componentPercent(
   return weighted;
 }
 
+export function remainingAverageNeeded(
+  rows: { percent: number | null; credits: number }[],
+  targetPercent: number,
+): { remainingCredits: number; neededOnRemaining: number } | null {
+  const usable = rows.filter((row) => row.credits > 0);
+  if (usable.length === 0) return null;
+  const remainingCredits = usable
+    .filter((row) => row.percent === null)
+    .reduce((sum, row) => sum + row.credits, 0);
+  if (remainingCredits <= 0) return null;
+  const totalCredits = usable.reduce((sum, row) => sum + row.credits, 0);
+  const earned = usable.reduce(
+    (sum, row) => sum + (row.percent === null ? 0 : row.percent * row.credits),
+    0,
+  );
+  return {
+    remainingCredits,
+    neededOnRemaining: (targetPercent * totalCredits - earned) / remainingCredits,
+  };
+}
+
+export function neededPartnerAverage(
+  locked: { percent: number; credits: number },
+  partnerCredits: number,
+  combinedTarget: number,
+): number | null {
+  if (locked.credits <= 0 || partnerCredits <= 0) return null;
+  return (combinedTarget * (locked.credits + partnerCredits) - locked.percent * locked.credits) / partnerCredits;
+}
+
 export function remainingNeeded(
   components: { name: string; weight: number | ""; score: number | "" }[],
   targetPercent: number,

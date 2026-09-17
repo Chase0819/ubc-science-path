@@ -7,7 +7,7 @@ const ALL_STEPS = [
   {
     target: "averages",
     title: "Three winter averages",
-    body: "Term 1 is Sep–Dec. Term 2 is Jan–Apr. Combined is credit-weighted percent across both — that is what Science uses for specialization ranking, not GPA. A course only counts once it has a course id and scores.",
+    body: "Term 1 is Sep–Dec. Term 2 is Jan–Apr. Combined is credit-weighted percent across both — that is what Science uses for specialization ranking, not GPA. Set a target on each box. The gap sits next to the average. If Term 1 is in and you set a winter target, the yellow box tells you what Term 2 has to be.",
   },
   {
     target: "combined",
