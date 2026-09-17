@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  calcCourseByCode,
+  searchCalcCourses,
+  type CalcCourseOption,
+} from "@/lib/calculator-courses";
 import {
   componentPercent,
   creditWeighted,
@@ -12,6 +17,12 @@ import {
 import { saveCalculator, saveSessional, loadCalculator, newCalcId } from "@/lib/storage";
 import type { CalcTerm, CalculatorCourse, GradeComponent } from "@/lib/types";
 import { winterNow } from "@/lib/winter";
+
+type AverageEntry = {
+  id: string;
+  code: string;
+  percent: number | null;
+};
 
 function uid() {
   return newCalcId();
@@ -37,9 +48,6 @@ function emptyCourse(term: CalcTerm): CalculatorCourse {
 }
 
 function coursePercent(course: CalculatorCourse): number | null {
-  if (course.percentOverride !== "" && Number.isFinite(Number(course.percentOverride))) {
-    return Number(course.percentOverride);
-  }
   return componentPercent(course.components);
 }
 
@@ -86,7 +94,10 @@ export function GradeCalculator() {
           ? null
           : { course, percent, credits: course.credits || 0 };
       })
-      .filter((row): row is NonNullable<typeof row> => row !== null && row.credits > 0);
+      .filter(
+        (row): row is NonNullable<typeof row> =>
+          row !== null && row.credits > 0 && row.course.code.trim() !== "",
+      );
   }, [courses]);
 
   const term1 = creditWeighted(
@@ -98,6 +109,10 @@ export function GradeCalculator() {
   const combined = creditWeighted(graded);
   const combinedPercent = combined?.percent ?? null;
 
+  const term1Entries = averageEntries(courses, "term1");
+  const term2Entries = averageEntries(courses, "term2");
+  const combinedEntries = averageEntries(courses);
+
   useEffect(() => {
     if (combinedPercent !== null) saveSessional(round1(combinedPercent));
   }, [combinedPercent]);
@@ -108,7 +123,7 @@ export function GradeCalculator() {
       : TERM_META[clock.term].nowLabel;
 
   return (
-    <div className="space-y-8">
+    <div className="relative left-1/2 w-[min(96rem,calc(100vw-5rem))] max-w-none -translate-x-1/2 space-y-8">
       <div className="rounded-[28px] border-2 border-[#142033] bg-[#c5e8c4] px-5 py-4 shadow-[4px_4px_0_#142033]">
         <p className="text-lg font-bold">Where the year is</p>
         <p className="mt-1 text-base leading-7">{phaseCopy}</p>
@@ -119,18 +134,21 @@ export function GradeCalculator() {
           kicker="Sep – Dec"
           label="Term 1 average"
           stats={term1}
+          entries={term1Entries}
           current={clock.phase === "term1"}
         />
         <AverageCard
           kicker="Jan – Apr"
           label="Term 2 average"
           stats={term2}
+          entries={term2Entries}
           current={clock.phase === "term2"}
         />
         <AverageCard
           kicker="Winter session"
           label="Combined average"
           stats={combined}
+          entries={combinedEntries}
           combined
         />
       </div>
@@ -188,7 +206,7 @@ function TermColumn({
   const credits = courses.reduce((sum, course) => sum + (course.credits || 0), 0);
   return (
     <section
-      className={`rounded-[28px] border-2 border-[#142033] p-4 shadow-[4px_4px_0_#142033] ${
+      className={`rounded-[28px] border-2 border-[#142033] p-5 shadow-[4px_4px_0_#142033] sm:p-6 ${
         current ? "bg-[#c5e8c4]" : "bg-white"
       }`}
     >
@@ -251,21 +269,13 @@ function CourseCard({
   const weightTotal = course.components.reduce((sum, row) => sum + (Number(row.weight) || 0), 0);
 
   return (
-    <article className="rounded-2xl border-2 border-[#142033] bg-white px-3 py-3 shadow-[3px_3px_0_#142033]">
-      <div className="flex items-start gap-3">
-        <label className="grid min-w-0 flex-1 gap-1 text-xs font-bold">
-          Course
-          <input
-            className="w-full rounded-2xl border-2 border-[#142033] bg-white px-3 py-2 text-base font-black outline-none"
-            placeholder="CPSC 110"
-            value={course.code}
-            onChange={(e) => updateCourse(setCourses, course.id, { code: e.target.value })}
-          />
-        </label>
-        <label className="grid w-16 shrink-0 gap-1 text-xs font-bold">
+    <article className="relative z-0 rounded-2xl border-2 border-[#142033] bg-white px-4 py-4 shadow-[3px_3px_0_#142033] focus-within:z-30 sm:px-5 sm:py-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <CourseSearch course={course} setCourses={setCourses} />
+        <label className="grid w-20 shrink-0 gap-1 text-xs font-bold">
           Credits
           <input
-            className="w-full rounded-2xl border-2 border-[#142033] bg-white px-2 py-2 font-bold outline-none"
+            className="w-full rounded-2xl border-2 border-[#142033] bg-white px-2 py-2.5 font-bold outline-none"
             type="number"
             min={0}
             step={1}
@@ -275,45 +285,29 @@ function CourseCard({
             }
           />
         </label>
-        <div className="w-[4.75rem] shrink-0 pt-5 text-right">
-          <p className="text-xl font-black tabular-nums leading-none">
+        <div className="min-w-[5.5rem] shrink-0 pt-5 text-right">
+          <p className="text-2xl font-black tabular-nums leading-none">
             {percent === null ? "—" : `${round1(percent)}%`}
           </p>
-          <p className="mt-1 text-[10px] font-semibold text-[var(--muted)]">
+          <p className="mt-1 text-xs font-semibold text-[var(--muted)]">
             {percent === null ? "add scores" : letterFromPercent(percent)}
           </p>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <TermSwitch term={course.term} onChange={(term) => updateCourse(setCourses, course.id, { term })} />
-        <label className="ml-auto grid w-28 gap-1 text-[10px] font-bold text-[var(--muted)]">
-          Final % override
-          <input
-            className="rounded-full border-2 border-[#142033] bg-white px-3 py-1 text-xs font-bold outline-none"
-            type="number"
-            min={0}
-            max={100}
-            placeholder="optional"
-            value={course.percentOverride}
-            onChange={(e) =>
-              updateCourse(setCourses, course.id, {
-                percentOverride: e.target.value === "" ? "" : Number(e.target.value),
-              })
-            }
-          />
-        </label>
         <button
           type="button"
-          className="rounded-full border-2 border-[#142033] bg-white px-3 py-1 text-xs font-bold"
+          className="ml-auto rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-bold hover:bg-[#f8d0d0]"
           onClick={() => setCourses((list) => list.filter((row) => row.id !== course.id))}
         >
-          Remove
+          Delete course
         </button>
       </div>
 
-      <div className="mt-3 space-y-2">
-        <div className="grid grid-cols-[1fr_4.5rem_4.5rem_1.5rem] gap-2 text-[10px] font-bold tracking-wide text-[var(--muted)] uppercase">
+      <div className="mt-4 space-y-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_6rem_6rem_2rem] gap-2 text-[10px] font-bold tracking-wide text-[var(--muted)] uppercase">
           <p>Component</p>
           <p>Weight</p>
           <p>Score</p>
@@ -322,7 +316,7 @@ function CourseCard({
         {course.components.map((row) => (
           <div
             key={row.id}
-            className="grid grid-cols-[1fr_4.5rem_4.5rem_1.5rem] items-center gap-2"
+            className="grid grid-cols-[minmax(0,1fr)_6rem_6rem_2rem] items-center gap-2"
           >
             <input
               className="rounded-xl border-2 border-[#142033] bg-white px-2 py-1.5 text-sm font-semibold outline-none"
@@ -439,12 +433,14 @@ function AverageCard({
   kicker,
   label,
   stats,
+  entries,
   current,
   combined,
 }: {
   kicker: string;
   label: string;
   stats: { percent: number; credits: number; gpa: number } | null;
+  entries: AverageEntry[];
   current?: boolean;
   combined?: boolean;
 }) {
@@ -466,8 +462,146 @@ function AverageCard({
             ? `${stats.credits} cr · GPA ${round2(stats.gpa).toFixed(2)} · saved for outlook`
             : `${stats.credits} cr · GPA ${round2(stats.gpa).toFixed(2)}`}
       </p>
+      {entries.length > 0 ? (
+        <ul className="mt-3 max-h-36 space-y-1 overflow-y-auto text-xs font-bold">
+          {entries.map((row) => (
+            <li key={row.id} className="flex items-baseline justify-between gap-3">
+              <span>{row.code}</span>
+              <span className="tabular-nums text-[var(--muted)]">
+                {row.percent === null ? "—" : `${round1(row.percent)}%`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
+}
+
+function CourseSearch({
+  course,
+  setCourses,
+}: {
+  course: CalculatorCourse;
+  setCourses: React.Dispatch<React.SetStateAction<CalculatorCourse[]>>;
+}) {
+  const listId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState(course.code);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const matches = useMemo(() => searchCalcCourses(query), [query]);
+
+  useEffect(() => {
+    setQuery(course.code);
+  }, [course.code]);
+
+  useEffect(() => {
+    setActive(0);
+  }, [query]);
+
+  useEffect(() => {
+    function onPointer(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    return () => document.removeEventListener("mousedown", onPointer);
+  }, []);
+
+  function pick(option: CalcCourseOption) {
+    updateCourse(setCourses, course.id, { code: option.code, credits: option.credits });
+    setQuery(option.code);
+    setOpen(false);
+  }
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setOpen(true);
+      setActive((index) => Math.min(index + 1, Math.max(matches.length - 1, 0)));
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActive((index) => Math.max(index - 1, 0));
+      return;
+    }
+    if (event.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const hit = matches[active] ?? calcCourseByCode(query);
+      if (hit) pick(hit);
+    }
+  }
+
+  return (
+    <div ref={rootRef} className={`relative min-w-[12rem] flex-1 ${open ? "z-40" : ""}`}>
+      <label className="grid gap-1 text-xs font-bold">
+        Search course
+        <input
+          className="w-full rounded-2xl border-2 border-[#142033] bg-white px-3 py-2.5 text-base font-black outline-none"
+          placeholder="Type C for CHEM, CPSC…"
+          value={query}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          autoComplete="off"
+          onFocus={() => setOpen(query.trim().length > 0)}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+          }}
+          onKeyDown={onKeyDown}
+        />
+      </label>
+      {open && query.trim() ? (
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-40 mt-1 max-h-64 w-full overflow-auto rounded-2xl border-2 border-[#142033] bg-white py-1 shadow-[4px_4px_0_#142033]"
+        >
+          {matches.length === 0 ? (
+            <li className="px-3 py-2 text-xs font-semibold text-[var(--muted)]">
+              No 100- or 200-level Science course starts with that.
+            </li>
+          ) : (
+            matches.map((option, index) => (
+              <li key={option.code} role="option" aria-selected={index === active}>
+                <button
+                  type="button"
+                  className={`flex w-full items-baseline justify-between gap-3 px-3 py-2 text-left ${
+                    index === active ? "bg-[#c5e8c4]" : "bg-white hover:bg-[#d8f0d7]"
+                  }`}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActive(index)}
+                  onClick={() => pick(option)}
+                >
+                  <span className="text-sm font-black">{option.code}</span>
+                  <span className="truncate text-[11px] font-semibold text-[var(--muted)]">
+                    {option.title}
+                  </span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function averageEntries(courses: CalculatorCourse[], term?: CalcTerm): AverageEntry[] {
+  return courses
+    .filter((course) => course.code.trim() && (!term || course.term === term))
+    .map((course) => ({
+      id: course.id,
+      code: course.code,
+      percent: coursePercent(course),
+    }));
 }
 
 function updateCourse(
