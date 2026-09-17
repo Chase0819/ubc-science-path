@@ -22,14 +22,23 @@ type AverageEntry = {
   id: string;
   code: string;
   percent: number | null;
+  pull: number | null;
+};
+
+type GradedRow = {
+  course: CalculatorCourse;
+  percent: number;
+  credits: number;
 };
 
 function uid() {
   return newCalcId();
 }
 
+const COMPONENT_PRESETS = ["Assignments", "Midterm", "Final", "Attendance", "Lab"] as const;
+
 function emptyComponent(): GradeComponent {
-  return { id: uid(), name: "Midterm", weight: 30, score: "" };
+  return { id: uid(), name: "", weight: 30, score: "" };
 }
 
 function emptyCourse(term: CalcTerm): CalculatorCourse {
@@ -109,9 +118,9 @@ export function GradeCalculator() {
   const combined = creditWeighted(graded);
   const combinedPercent = combined?.percent ?? null;
 
-  const term1Entries = averageEntries(courses, "term1");
-  const term2Entries = averageEntries(courses, "term2");
-  const combinedEntries = averageEntries(courses);
+  const term1Entries = averageEntries(courses, graded, "term1");
+  const term2Entries = averageEntries(courses, graded, "term2");
+  const combinedEntries = averageEntries(courses, graded);
 
   useEffect(() => {
     if (combinedPercent !== null) saveSessional(round1(combinedPercent));
@@ -318,20 +327,21 @@ function CourseCard({
             key={row.id}
             className="grid grid-cols-[minmax(0,1fr)_6rem_6rem_2rem] items-center gap-2"
           >
-            <input
-              className="rounded-xl border-2 border-[#142033] bg-white px-2 py-1.5 text-sm font-semibold outline-none"
-              value={row.name}
-              onChange={(e) =>
-                updateComponent(setCourses, course.id, row.id, { name: e.target.value })
-              }
+            <ComponentNamePick
+              courseId={course.id}
+              component={row}
+              setCourses={setCourses}
             />
             <input
               className="rounded-xl border-2 border-[#142033] bg-white px-2 py-1.5 text-sm font-bold outline-none"
               type="number"
               min={0}
+              placeholder="—"
               value={row.weight}
               onChange={(e) =>
-                updateComponent(setCourses, course.id, row.id, { weight: Number(e.target.value) })
+                updateComponent(setCourses, course.id, row.id, {
+                  weight: e.target.value === "" ? "" : Number(e.target.value),
+                })
               }
             />
             <input
@@ -463,15 +473,186 @@ function AverageCard({
             : `${stats.credits} cr · GPA ${round2(stats.gpa).toFixed(2)}`}
       </p>
       {entries.length > 0 ? (
-        <ul className="mt-3 max-h-36 space-y-1 overflow-y-auto text-xs font-bold">
+        <ul className="mt-3 max-h-40 space-y-1.5 overflow-y-auto text-xs font-bold">
           {entries.map((row) => (
-            <li key={row.id} className="flex items-baseline justify-between gap-3">
-              <span>{row.code}</span>
-              <span className="tabular-nums text-[var(--muted)]">
-                {row.percent === null ? "—" : `${round1(row.percent)}%`}
+            <li key={row.id} className="flex items-baseline justify-between gap-2">
+              <span className="min-w-0 truncate">{row.code}</span>
+              <span className="shrink-0 tabular-nums">
+                <span className="text-[var(--muted)]">
+                  {row.percent === null ? "—" : `${round1(row.percent)}%`}
+                </span>
+                <span className={`ml-2 ${pullClass(row.pull)}`}>{formatPull(row.pull)}</span>
               </span>
             </li>
           ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function filterComponentPresets(query: string): string[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [...COMPONENT_PRESETS];
+  return COMPONENT_PRESETS.filter((name) => name.toLowerCase().includes(needle));
+}
+
+function ComponentNamePick({
+  courseId,
+  component,
+  setCourses,
+}: {
+  courseId: string;
+  component: GradeComponent;
+  setCourses: React.Dispatch<React.SetStateAction<CalculatorCourse[]>>;
+}) {
+  const listId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const skipNextOpen = useRef(false);
+  const [query, setQuery] = useState(component.name);
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState(false);
+  const [active, setActive] = useState(0);
+  const matches = useMemo(
+    () => (typed ? filterComponentPresets(query) : [...COMPONENT_PRESETS]),
+    [query, typed],
+  );
+  const optionCount = matches.length + 1;
+
+  useEffect(() => {
+    setQuery(component.name);
+  }, [component.name]);
+
+  useEffect(() => {
+    setActive(0);
+  }, [query, typed]);
+
+  useEffect(() => {
+    function onPointer(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    return () => document.removeEventListener("mousedown", onPointer);
+  }, []);
+
+  function setName(name: string) {
+    setQuery(name);
+    updateComponent(setCourses, courseId, component.id, { name });
+  }
+
+  function pickPreset(name: string) {
+    setName(name);
+    setOpen(false);
+    setTyped(false);
+  }
+
+  function pickCustom() {
+    skipNextOpen.current = true;
+    setName("");
+    setTyped(true);
+    setOpen(false);
+    inputRef.current?.focus();
+    window.setTimeout(() => {
+      skipNextOpen.current = false;
+    }, 0);
+  }
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setOpen(true);
+      setActive((index) => Math.min(index + 1, optionCount - 1));
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActive((index) => Math.max(index - 1, 0));
+      return;
+    }
+    if (event.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (active >= matches.length) pickCustom();
+      else if (matches[active]) pickPreset(matches[active]);
+      else pickCustom();
+    }
+  }
+
+  return (
+    <div ref={rootRef} className={`relative min-w-0 ${open ? "z-40" : ""}`}>
+      <input
+        ref={inputRef}
+        className="w-full rounded-xl border-2 border-[#142033] bg-white px-2 py-1.5 text-sm font-semibold outline-none"
+        placeholder="Type a name"
+        value={query}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        autoComplete="off"
+        onMouseDown={() => {
+          if (skipNextOpen.current) return;
+          setTyped(false);
+          setOpen(true);
+        }}
+        onFocus={() => {
+          if (skipNextOpen.current) return;
+          setTyped(false);
+          setOpen(true);
+        }}
+        onClick={() => {
+          if (skipNextOpen.current) return;
+          setOpen(true);
+        }}
+        onChange={(event) => {
+          setTyped(true);
+          setName(event.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={onKeyDown}
+      />
+      {open ? (
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-40 mt-1 max-h-64 w-[min(18rem,calc(100vw-6rem))] overflow-auto rounded-2xl border-2 border-[#142033] bg-white py-1 shadow-[4px_4px_0_#142033]"
+        >
+          {matches.map((name, index) => (
+            <li key={name} role="option" aria-selected={index === active}>
+              <button
+                type="button"
+                className={`w-full px-3 py-2 text-left text-sm font-bold ${
+                  index === active ? "bg-[#c5e8c4]" : "bg-white hover:bg-[#d8f0d7]"
+                }`}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setActive(index)}
+                onClick={() => pickPreset(name)}
+              >
+                {name}
+              </button>
+            </li>
+          ))}
+          <li
+            role="option"
+            aria-selected={active === matches.length}
+            className="mt-1 border-t-2 border-[#142033]"
+          >
+            <button
+              type="button"
+              className={`w-full px-3 py-2 text-left text-sm font-bold text-[#3d7a45] ${
+                active === matches.length ? "bg-[#c5e8c4]" : "bg-white hover:bg-[#d8f0d7]"
+              }`}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => setActive(matches.length)}
+              onClick={pickCustom}
+            >
+              + Create own component
+            </button>
+          </li>
         </ul>
       ) : null}
     </div>
@@ -543,7 +724,7 @@ function CourseSearch({
         Search course
         <input
           className="w-full rounded-2xl border-2 border-[#142033] bg-white px-3 py-2.5 text-base font-black outline-none"
-          placeholder="Type C for CHEM, CPSC…"
+          placeholder="Type course id"
           value={query}
           role="combobox"
           aria-expanded={open}
@@ -594,14 +775,40 @@ function CourseSearch({
   );
 }
 
-function averageEntries(courses: CalculatorCourse[], term?: CalcTerm): AverageEntry[] {
-  return courses
-    .filter((course) => course.code.trim() && (!term || course.term === term))
-    .map((course) => ({
-      id: course.id,
-      code: course.code,
-      percent: coursePercent(course),
-    }));
+function averageEntries(
+  courses: CalculatorCourse[],
+  graded: GradedRow[],
+  term?: CalcTerm,
+): AverageEntry[] {
+  const pool = courses.filter((course) => course.code.trim() && (!term || course.term === term));
+  const counted = graded.filter((row) => !term || row.course.term === term);
+  const withAll = creditWeighted(counted);
+
+  return pool.map((course) => {
+    const percent = coursePercent(course);
+    const inAverage = percent !== null && (course.credits || 0) > 0;
+    let pull: number | null = null;
+    if (inAverage && withAll) {
+      const without = creditWeighted(counted.filter((row) => row.course.id !== course.id));
+      pull = without === null ? 0 : withAll.percent - without.percent;
+    }
+    return { id: course.id, code: course.code, percent, pull };
+  });
+}
+
+function formatPull(pull: number | null): string {
+  if (pull === null) return "—";
+  const n = round1(pull);
+  if (n === 0) return "0%";
+  return n > 0 ? `+${n}%` : `−${Math.abs(n)}%`;
+}
+
+function pullClass(pull: number | null): string {
+  if (pull === null) return "text-[var(--muted)]";
+  const n = round1(pull);
+  if (n > 0) return "text-[#2f6b38]";
+  if (n < 0) return "text-[#b42318]";
+  return "text-[var(--muted)]";
 }
 
 function updateCourse(

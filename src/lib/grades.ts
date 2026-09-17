@@ -46,38 +46,38 @@ export function creditWeighted(
 }
 
 export function componentPercent(
-  components: { weight: number; score: number | "" }[],
+  components: { weight: number | ""; score: number | "" }[],
 ): number | null {
   const usable = components.filter(
-    (c) => c.weight > 0 && c.score !== "" && Number.isFinite(Number(c.score)),
+    (c) => Number(c.weight) > 0 && c.score !== "" && Number.isFinite(Number(c.score)),
   );
   if (usable.length === 0) return null;
-  const weightSum = usable.reduce((sum, c) => sum + c.weight, 0);
+  const weightSum = usable.reduce((sum, c) => sum + Number(c.weight), 0);
   if (weightSum <= 0) return null;
   const weighted = usable.reduce(
-    (sum, c) => sum + (Number(c.score) * c.weight) / weightSum,
+    (sum, c) => sum + (Number(c.score) * Number(c.weight)) / weightSum,
     0,
   );
   return weighted;
 }
 
 export function remainingNeeded(
-  components: { name: string; weight: number; score: number | "" }[],
+  components: { name: string; weight: number | ""; score: number | "" }[],
   targetPercent: number,
 ): { remainingWeight: number; neededOnRemaining: number | null } | null {
   const remaining = components.filter(
-    (c) => c.weight > 0 && (c.score === "" || !Number.isFinite(Number(c.score))),
+    (c) => Number(c.weight) > 0 && (c.score === "" || !Number.isFinite(Number(c.score))),
   );
   const done = components.filter(
-    (c) => c.weight > 0 && c.score !== "" && Number.isFinite(Number(c.score)),
+    (c) => Number(c.weight) > 0 && c.score !== "" && Number.isFinite(Number(c.score)),
   );
   const totalWeight = components.reduce(
-    (sum, c) => sum + (c.weight > 0 ? c.weight : 0),
+    (sum, c) => sum + (Number(c.weight) > 0 ? Number(c.weight) : 0),
     0,
   );
   if (totalWeight <= 0 || remaining.length === 0) return null;
-  const remainingWeight = remaining.reduce((sum, c) => sum + c.weight, 0);
-  const earned = done.reduce((sum, c) => sum + Number(c.score) * c.weight, 0);
+  const remainingWeight = remaining.reduce((sum, c) => sum + Number(c.weight), 0);
+  const earned = done.reduce((sum, c) => sum + Number(c.score) * Number(c.weight), 0);
   const neededTotal = targetPercent * totalWeight;
   const neededOnRemaining = (neededTotal - earned) / remainingWeight;
   return { remainingWeight, neededOnRemaining };

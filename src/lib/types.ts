@@ -31,7 +31,7 @@ export type CatalogCourse = {
 export type GradeComponent = {
   id: string;
   name: string;
-  weight: number;
+  weight: number | "";
   score: number | "";
 };
 
