@@ -18,6 +18,7 @@ import { saveCalculator, saveSessional, loadCalculator, newCalcId } from "@/lib/
 import type { CalcTerm, CalculatorCourse, GradeComponent } from "@/lib/types";
 import { winterNow } from "@/lib/winter";
 import { AverageAnalysis } from "@/components/AverageAnalysis";
+import { CalculatorTutorial } from "@/components/CalculatorTutorial";
 
 type AverageEntry = {
   id: string;
@@ -79,13 +80,22 @@ const TERM_META: Record<
 export function GradeCalculator() {
   const [courses, setCourses] = useState<CalculatorCourse[]>([]);
   const [analysis, setAnalysis] = useState<"term1" | "term2" | "combined" | null>(null);
+  const [ready, setReady] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const skipSave = useRef(true);
   const clock = winterNow();
 
   useEffect(() => {
     const saved = loadCalculator();
     setCourses(saved.length ? saved : [emptyCourse(winterNow().term)]);
+    setReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    const wait = window.setTimeout(() => setTourOpen(true), 880);
+    return () => window.clearTimeout(wait);
+  }, [ready]);
 
   useEffect(() => {
     if (skipSave.current) {
@@ -141,7 +151,7 @@ export function GradeCalculator() {
   return (
     <>
       <div className="relative left-1/2 w-[min(96rem,calc(100vw-5rem))] max-w-none -translate-x-1/2 space-y-8">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div data-tutorial="averages" className="grid gap-4 scroll-mt-8 sm:grid-cols-3">
         <AverageCard
           kicker="Sep – Dec"
           label="Term 1 average"
@@ -168,12 +178,21 @@ export function GradeCalculator() {
         />
       </div>
 
-      <div>
-        <p className="text-sm font-semibold text-[#3d7a45]">Your winter marks</p>
-        <h2 className="mt-1 text-3xl font-bold tracking-tight">Term 1 and Term 2</h2>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-[#3d7a45]">Your winter marks</p>
+          <h2 className="mt-1 text-3xl font-bold tracking-tight">Term 1 and Term 2</h2>
+        </div>
+        <button
+          type="button"
+          onClick={() => setTourOpen(true)}
+          className="rounded-full border-2 border-[#142033] bg-[#d8f0d7] px-4 py-1.5 text-sm font-semibold shadow-[2px_2px_0_#142033]"
+        >
+          How this works
+        </button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div data-tutorial="terms" className="grid gap-4 scroll-mt-8 lg:grid-cols-2">
         <TermColumn
           term="term1"
           current={clock.term === "term1"}
@@ -188,6 +207,8 @@ export function GradeCalculator() {
         />
       </div>
       </div>
+
+      {tourOpen ? <CalculatorTutorial onClose={() => setTourOpen(false)} /> : null}
 
       {analysis ? (
         <AverageAnalysis
@@ -315,6 +336,7 @@ function CourseCard({
         </div>
       </div>
 
+      <div data-tutorial="components" className="scroll-mt-8">
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <TermSwitch term={course.term} onChange={(term) => updateCourse(setCourses, course.id, { term })} />
         <label className="flex items-center gap-2 text-xs font-bold">
@@ -437,6 +459,7 @@ function CourseCard({
           </span>
         ) : null}
       </div>
+      </div>
     </article>
   );
 }
@@ -485,7 +508,8 @@ function AverageCard({
 }) {
   return (
     <div
-      className={`rounded-[28px] border-2 border-[#142033] p-5 shadow-[4px_4px_0_#142033] ${
+      data-tutorial={combined ? "combined" : undefined}
+      className={`scroll-mt-8 rounded-[28px] border-2 border-[#142033] p-5 shadow-[4px_4px_0_#142033] ${
         combined ? "bg-[#f2d45c]" : current ? "bg-[#d8f0d7]" : "bg-white"
       }`}
     >
@@ -755,7 +779,11 @@ function CourseSearch({
   }
 
   return (
-    <div ref={rootRef} className={`relative min-w-[12rem] flex-1 ${open ? "z-40" : ""}`}>
+    <div
+      ref={rootRef}
+      data-tutorial="search"
+      className={`relative min-w-[12rem] flex-1 scroll-mt-8 ${open ? "z-40" : ""}`}
+    >
       <label className="grid gap-1 text-xs font-bold">
         Search course
         <input
