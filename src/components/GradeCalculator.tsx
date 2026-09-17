@@ -17,6 +17,7 @@ import {
 import { saveCalculator, saveSessional, loadCalculator, newCalcId } from "@/lib/storage";
 import type { CalcTerm, CalculatorCourse, GradeComponent } from "@/lib/types";
 import { winterNow } from "@/lib/winter";
+import { AverageAnalysis } from "@/components/AverageAnalysis";
 
 type AverageEntry = {
   id: string;
@@ -48,6 +49,7 @@ function emptyCourse(term: CalcTerm): CalculatorCourse {
     credits: 3,
     term,
     percentOverride: "",
+    target: 80,
     components: [
       { id: uid(), name: "Assignments", weight: 20, score: "" },
       { id: uid(), name: "Midterm", weight: 30, score: "" },
@@ -62,23 +64,21 @@ function coursePercent(course: CalculatorCourse): number | null {
 
 const TERM_META: Record<
   CalcTerm,
-  { title: string; season: string; nowLabel: string }
+  { title: string; season: string }
 > = {
   term1: {
     title: "Term 1",
     season: "Sep – Dec",
-    nowLabel: "You are in Term 1. New courses land here until January.",
   },
   term2: {
     title: "Term 2",
     season: "Jan – Apr",
-    nowLabel: "You are in Term 2. New courses land here until the winter session ends.",
   },
 };
 
 export function GradeCalculator() {
   const [courses, setCourses] = useState<CalculatorCourse[]>([]);
-  const [target, setTarget] = useState(80);
+  const [analysis, setAnalysis] = useState<"term1" | "term2" | "combined" | null>(null);
   const skipSave = useRef(true);
   const clock = winterNow();
 
@@ -121,23 +121,26 @@ export function GradeCalculator() {
   const term1Entries = averageEntries(courses, graded, "term1");
   const term2Entries = averageEntries(courses, graded, "term2");
   const combinedEntries = averageEntries(courses, graded);
+  const term1Courses = useMemo(
+    () => courses.filter((course) => course.term === "term1"),
+    [courses],
+  );
+  const term2Courses = useMemo(
+    () => courses.filter((course) => course.term === "term2"),
+    [courses],
+  );
+  const codedCourses = useMemo(
+    () => courses.filter((course) => course.code.trim()),
+    [courses],
+  );
 
   useEffect(() => {
     if (combinedPercent !== null) saveSessional(round1(combinedPercent));
   }, [combinedPercent]);
 
-  const phaseCopy =
-    clock.phase === "summer"
-      ? "Winter session is over. New courses start in Term 1 for the next winter."
-      : TERM_META[clock.term].nowLabel;
-
   return (
-    <div className="relative left-1/2 w-[min(96rem,calc(100vw-5rem))] max-w-none -translate-x-1/2 space-y-8">
-      <div className="rounded-[28px] border-2 border-[#142033] bg-[#c5e8c4] px-5 py-4 shadow-[4px_4px_0_#142033]">
-        <p className="text-lg font-bold">Where the year is</p>
-        <p className="mt-1 text-base leading-7">{phaseCopy}</p>
-      </div>
-
+    <>
+      <div className="relative left-1/2 w-[min(96rem,calc(100vw-5rem))] max-w-none -translate-x-1/2 space-y-8">
       <div className="grid gap-4 sm:grid-cols-3">
         <AverageCard
           kicker="Sep – Dec"
@@ -145,6 +148,7 @@ export function GradeCalculator() {
           stats={term1}
           entries={term1Entries}
           current={clock.phase === "term1"}
+          onAnalyse={() => setAnalysis("term1")}
         />
         <AverageCard
           kicker="Jan – Apr"
@@ -152,6 +156,7 @@ export function GradeCalculator() {
           stats={term2}
           entries={term2Entries}
           current={clock.phase === "term2"}
+          onAnalyse={() => setAnalysis("term2")}
         />
         <AverageCard
           kicker="Winter session"
@@ -159,42 +164,51 @@ export function GradeCalculator() {
           stats={combined}
           entries={combinedEntries}
           combined
+          onAnalyse={() => setAnalysis("combined")}
         />
       </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-[#3d7a45]">Your winter marks</p>
-          <h2 className="mt-1 text-3xl font-bold tracking-tight">Term 1 and Term 2</h2>
-        </div>
-        <label className="flex items-center gap-2 text-sm font-semibold">
-          Target course %
-          <input
-            className="w-20 rounded-2xl border-2 border-[#142033] bg-white px-3 py-1.5 font-bold shadow-[2px_2px_0_#142033] outline-none"
-            type="number"
-            value={target}
-            onChange={(e) => setTarget(Number(e.target.value))}
-          />
-        </label>
+      <div>
+        <p className="text-sm font-semibold text-[#3d7a45]">Your winter marks</p>
+        <h2 className="mt-1 text-3xl font-bold tracking-tight">Term 1 and Term 2</h2>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <TermColumn
           term="term1"
           current={clock.term === "term1"}
-          courses={courses.filter((course) => course.term === "term1")}
-          target={target}
+          courses={term1Courses}
           setCourses={setCourses}
         />
         <TermColumn
           term="term2"
           current={clock.term === "term2"}
-          courses={courses.filter((course) => course.term === "term2")}
-          target={target}
+          courses={term2Courses}
           setCourses={setCourses}
         />
       </div>
-    </div>
+      </div>
+
+      {analysis ? (
+        <AverageAnalysis
+          title={
+            analysis === "term1"
+              ? "Term 1 analysis"
+              : analysis === "term2"
+                ? "Term 2 analysis"
+                : "Combined winter analysis"
+          }
+          courses={
+            analysis === "term1"
+              ? term1Courses
+              : analysis === "term2"
+                ? term2Courses
+                : codedCourses
+          }
+          onClose={() => setAnalysis(null)}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -202,13 +216,11 @@ function TermColumn({
   term,
   current,
   courses,
-  target,
   setCourses,
 }: {
   term: CalcTerm;
   current: boolean;
   courses: CalculatorCourse[];
-  target: number;
   setCourses: React.Dispatch<React.SetStateAction<CalculatorCourse[]>>;
 }) {
   const meta = TERM_META[term];
@@ -244,7 +256,6 @@ function TermColumn({
             <CourseCard
               key={course.id}
               course={course}
-              target={target}
               setCourses={setCourses}
             />
           ))
@@ -266,15 +277,15 @@ function TermColumn({
 
 function CourseCard({
   course,
-  target,
   setCourses,
 }: {
   course: CalculatorCourse;
-  target: number;
   setCourses: React.Dispatch<React.SetStateAction<CalculatorCourse[]>>;
 }) {
   const percent = coursePercent(course);
-  const leftover = remainingNeeded(course.components, target);
+  const target = typeof course.target === "number" ? course.target : null;
+  const leftover =
+    target === null ? null : remainingNeeded(course.components, target);
   const weightTotal = course.components.reduce((sum, row) => sum + (Number(row.weight) || 0), 0);
 
   return (
@@ -306,6 +317,22 @@ function CourseCard({
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <TermSwitch term={course.term} onChange={(term) => updateCourse(setCourses, course.id, { term })} />
+        <label className="flex items-center gap-2 text-xs font-bold">
+          Target %
+          <input
+            className="w-16 rounded-xl border-2 border-[#142033] bg-white px-2 py-1.5 text-sm font-bold outline-none"
+            type="number"
+            min={0}
+            max={100}
+            placeholder="—"
+            value={course.target}
+            onChange={(e) =>
+              updateCourse(setCourses, course.id, {
+                target: e.target.value === "" ? "" : Number(e.target.value),
+              })
+            }
+          />
+        </label>
         <button
           type="button"
           className="ml-auto rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-bold hover:bg-[#f8d0d0]"
@@ -402,7 +429,7 @@ function CourseCard({
         >
           Weights {round1(weightTotal)}%
         </span>
-        {leftover && leftover.neededOnRemaining !== null ? (
+        {leftover && leftover.neededOnRemaining !== null && target !== null ? (
           <span className="text-[var(--muted)]">
             Need{" "}
             <strong className="text-[var(--ink)]">{round1(leftover.neededOnRemaining)}%</strong> on
@@ -446,6 +473,7 @@ function AverageCard({
   entries,
   current,
   combined,
+  onAnalyse,
 }: {
   kicker: string;
   label: string;
@@ -453,11 +481,12 @@ function AverageCard({
   entries: AverageEntry[];
   current?: boolean;
   combined?: boolean;
+  onAnalyse: () => void;
 }) {
   return (
     <div
       className={`rounded-[28px] border-2 border-[#142033] p-5 shadow-[4px_4px_0_#142033] ${
-        combined ? "bg-[#c5e8c4]" : current ? "bg-[#d8f0d7]" : "bg-white"
+        combined ? "bg-[#f2d45c]" : current ? "bg-[#d8f0d7]" : "bg-white"
       }`}
     >
       <p className="text-xs font-bold tracking-wide text-[#3d7a45] uppercase">{kicker}</p>
@@ -487,6 +516,13 @@ function AverageCard({
           ))}
         </ul>
       ) : null}
+      <button
+        type="button"
+        onClick={onAnalyse}
+        className="mt-4 w-full rounded-full border-2 border-[#142033] bg-white px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0_#142033]"
+      >
+        Deep analysis
+      </button>
     </div>
   );
 }

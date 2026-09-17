@@ -38,11 +38,18 @@ function uniquifyCourses(courses: CalculatorCourse[], fallback: CalculatorCourse
     ...course,
     id: take(course.id),
     term: asCalcTerm(course.term, fallback),
+    target: normalizeTarget(course.target),
     components: (course.components ?? []).map((row) => ({
       ...row,
       id: take(row.id),
     })),
   }));
+}
+
+function normalizeTarget(value: unknown): number | "" {
+  if (value === "") return "";
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return 80;
 }
 
 export function loadCalculator(): CalculatorCourse[] {

@@ -70,6 +70,36 @@ async function averageForCode(code: string): Promise<WinterAverage | null> {
   return null;
 }
 
+export type CourseWinterSeries = {
+  latest: WinterAverage | null;
+  history: WinterAverage[];
+};
+
+async function seriesForCode(code: string): Promise<CourseWinterSeries> {
+  const parts = splitCode(code);
+  if (!parts) return { latest: null, history: [] };
+  const sessions = await winterSessions();
+  const found: WinterAverage[] = [];
+  for (const session of sessions.slice(0, 6)) {
+    const rows = await fetchJson<GradeRow[]>(
+      `https://ubcgrades.com/api/v3/grades/UBCV/${session}/${parts.subject}/${parts.course}`,
+    );
+    if (!rows?.length) continue;
+    const hit = fromOverall(rows, session);
+    if (hit) found.push(hit);
+  }
+  const history = [...found].sort((a, b) => a.session.localeCompare(b.session));
+  return { latest: history[history.length - 1] ?? null, history };
+}
+
+export const getWinterSeries = cache(async (codes: string[]) => {
+  const unique = [...new Set(codes.map((code) => code.trim()).filter(Boolean))];
+  const entries = await Promise.all(
+    unique.map(async (code) => [code, await seriesForCode(code)] as const),
+  );
+  return Object.fromEntries(entries) as Record<string, CourseWinterSeries>;
+});
+
 export const getWinterAverages = cache(async (codes: string[]) => {
   const unique = [...new Set(codes)];
   const entries = await Promise.all(

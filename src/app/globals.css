@@ -541,3 +541,17 @@ html.tutorial-no-scroll body {
 .planner-chill.calculator-chill::before {
   background: #c5e8c4;
 }
+
+.planner-chill.calculator-chill::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: auto auto 8% -4rem;
+  height: 16rem;
+  width: 16rem;
+  border-radius: 999px;
+  background: #c5e8c4;
+  opacity: 0.22;
+  filter: blur(12px);
+  z-index: -1;
+}

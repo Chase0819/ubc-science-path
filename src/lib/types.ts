@@ -42,6 +42,7 @@ export type CalculatorCourse = {
   code: string;
   credits: number;
   term: CalcTerm;
+  target: number | "";
   components: GradeComponent[];
   percentOverride: number | "";
 };
