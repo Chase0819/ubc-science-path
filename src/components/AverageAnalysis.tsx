@@ -4,9 +4,10 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { componentPercent, round1 } from "@/lib/grades";
 import type { CalculatorCourse } from "@/lib/types";
+import { COMPONENT_PRESETS } from "@/lib/calculator-components";
 import { ubcGradesUrl, type CourseWinterSeries } from "@/lib/ubcgrades";
 
-const PRESET_ORDER = ["Assignments", "Midterm", "Final", "Attendance", "Lab"];
+const PRESET_ORDER = [...COMPONENT_PRESETS];
 
 type RankedCourse = {
   course: CalculatorCourse;
@@ -27,10 +28,14 @@ type ComponentGroup = {
 export function AverageAnalysis({
   title,
   courses,
+  target,
+  targetLabel,
   onClose,
 }: {
   title: string;
   courses: CalculatorCourse[];
+  target: number | "";
+  targetLabel: string;
   onClose: () => void;
 }) {
   const titleId = useId();
@@ -84,7 +89,9 @@ export function AverageAnalysis({
     code: row.course.code,
     you: row.you,
     campus: row.campus,
+    diff: row.diff,
   }));
+  const targetValue = typeof target === "number" ? target : null;
 
   const frame = (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6">
@@ -108,7 +115,8 @@ export function AverageAnalysis({
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
               Courses are ordered by your current percent. Campus numbers are the latest overall
-              winter average from UBC Grades, not a cutoff and not a component mark.
+              winter average from UBC Grades, not a cutoff and not a component mark. The graph
+              also draws this box&apos;s target and the actual gap between you and campus.
             </p>
           </div>
           <button
@@ -166,10 +174,11 @@ export function AverageAnalysis({
             <section className="rounded-[24px] border-2 border-[#142033] bg-white p-4 sm:p-5">
               <h3 className="text-lg font-black">Difference from campus winter average</h3>
               <p className="mt-1 text-sm font-medium text-[var(--muted)]">
-                Same order as the list. The gap between the two lines is how far you are from the
-                latest winter overall.
+                Same order as the list. Green is you, black is the latest campus winter overall, and
+                the dashed line is this box&apos;s target. The number on each stem is you minus
+                campus.
               </p>
-              <ScoreCompareChart rows={chartRows} />
+              <ScoreCompareChart rows={chartRows} target={targetValue} targetLabel={targetLabel} />
             </section>
 
             <section className="rounded-[24px] border-2 border-[#142033] bg-white p-4 sm:p-5">
@@ -343,8 +352,12 @@ function diffClass(diff: number | null): string {
 
 function ScoreCompareChart({
   rows,
+  target,
+  targetLabel,
 }: {
-  rows: { code: string; you: number | null; campus: number | null }[];
+  rows: { code: string; you: number | null; campus: number | null; diff: number | null }[];
+  target: number | null;
+  targetLabel: string;
 }) {
   const plotted = rows.filter((row) => row.you !== null || row.campus !== null);
   if (plotted.length === 0) {
@@ -356,16 +369,16 @@ function ScoreCompareChart({
   }
 
   const width = 640;
-  const height = 260;
+  const height = 280;
   const padL = 42;
-  const padR = 18;
-  const padT = 18;
+  const padR = 44;
+  const padT = 22;
   const padB = 52;
   const innerW = width - padL - padR;
   const innerH = height - padT - padB;
   const x = (index: number) =>
     plotted.length === 1 ? padL + innerW / 2 : padL + (index / (plotted.length - 1)) * innerW;
-  const y = (value: number) => padT + (1 - value / 100) * innerH;
+  const y = (value: number) => padT + (1 - Math.min(100, Math.max(0, value)) / 100) * innerH;
 
   const youLine = polyline(plotted.map((row, index) => (row.you === null ? null : [x(index), y(row.you)])));
   const campusLine = polyline(
@@ -375,7 +388,10 @@ function ScoreCompareChart({
   return (
     <div className="mt-4 overflow-x-auto">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-auto min-w-full" role="img">
-        <title>Your percent versus latest campus winter average, courses high to low</title>
+        <title>
+          Your percent versus latest campus winter average
+          {target !== null ? ` and ${targetLabel}` : ""}
+        </title>
         {[0, 50, 80, 100].map((mark) => (
           <g key={mark}>
             <line
@@ -391,6 +407,27 @@ function ScoreCompareChart({
             </text>
           </g>
         ))}
+        {target !== null ? (
+          <g>
+            <line
+              x1={padL}
+              x2={width - padR}
+              y1={y(target)}
+              y2={y(target)}
+              stroke="#c9a227"
+              strokeWidth="2.5"
+              strokeDasharray="7 5"
+            />
+            <text
+              x={width - padR}
+              y={y(target) - 6}
+              textAnchor="end"
+              className="fill-[#8a7018] text-[11px] font-black"
+            >
+              {targetLabel} {round1(target)}%
+            </text>
+          </g>
+        ) : null}
         {campusLine.map((points, index) => (
           <polyline
             key={`campus-${index}`}
@@ -415,6 +452,30 @@ function ScoreCompareChart({
         ))}
         {plotted.map((row, index) => (
           <g key={`${row.code}-${index}`}>
+            {row.you !== null && row.campus !== null ? (
+              <>
+                <line
+                  x1={x(index)}
+                  x2={x(index)}
+                  y1={y(row.you)}
+                  y2={y(row.campus)}
+                  stroke={round1(row.you - row.campus) >= 0 ? "#2f6b38" : "#b42318"}
+                  strokeWidth="2"
+                />
+                <text
+                  x={index === plotted.length - 1 && plotted.length > 1 ? x(index) - 8 : x(index) + 8}
+                  y={(y(row.you) + y(row.campus)) / 2 + 4}
+                  textAnchor={
+                    index === plotted.length - 1 && plotted.length > 1 ? "end" : "start"
+                  }
+                  className={`text-[11px] font-black ${
+                    round1(row.you - row.campus) >= 0 ? "fill-[#2f6b38]" : "fill-[#b42318]"
+                  }`}
+                >
+                  {formatChartGap(row.you - row.campus)}
+                </text>
+              </>
+            ) : null}
             {row.campus !== null ? (
               <circle cx={x(index)} cy={y(row.campus)} r="4.5" fill="#142033" />
             ) : null}
@@ -441,9 +502,21 @@ function ScoreCompareChart({
           <span className="h-2 w-6 rounded-full bg-[#142033]" />
           Campus winter
         </span>
+        {target !== null ? (
+          <span className="flex items-center gap-2">
+            <span className="h-0.5 w-6 border-t-2 border-dashed border-[#c9a227]" />
+            {targetLabel}
+          </span>
+        ) : null}
       </div>
     </div>
   );
+}
+
+function formatChartGap(diff: number): string {
+  const n = round1(diff);
+  if (n === 0) return "0";
+  return n > 0 ? `+${n}` : `−${Math.abs(n)}`;
 }
 
 function polyline(points: ([number, number] | null)[]): string[] {

@@ -7,12 +7,12 @@ const ALL_STEPS = [
   {
     target: "averages",
     title: "Three winter averages",
-    body: "Term 1 is Sep–Dec. Term 2 is Jan–Apr. Combined is credit-weighted percent across both — that is what Science uses for specialization ranking, not GPA. Set a target on each box. The gap sits next to the average. If Term 1 is in and you set a winter target, the yellow box tells you what Term 2 has to be.",
+    body: "Term 1 is Sep–Dec. Term 2 is Jan–Apr. Combined is credit-weighted percent across both — that is what Science uses for specialization ranking, not GPA. Set a target on each box. Next to the average you will see how far you are above or below that target score. If Term 1 is in and you set a winter target, the yellow box tells you what Term 2 has to be.",
   },
   {
     target: "combined",
     title: "Deep analysis on each box",
-    body: "Open Deep analysis to rank your courses high to low, see the latest campus winter overall from UBC Grades, and compare the gap on a line graph. Component averages include names you created, like Quiz.",
+    body: "Open Deep analysis to rank your courses, draw you vs campus vs this box’s target on the line graph, and see the actual percent gap to the latest winter overall. Component averages include names you created, like Quiz — those names stay in the list for other courses.",
   },
   {
     target: "search",
@@ -22,7 +22,7 @@ const ALL_STEPS = [
   {
     target: "components",
     title: "Target, weight, and score",
-    body: "Each course has its own target %. Click a component box for Assignments, Midterm, Final, Attendance, or Lab — or create your own. Weight is the syllabus slice; score is what you got. Clear a weight to type 20, not 020.",
+    body: "Each course has its own target %. Click a component box for Assignments, Midterm, Final, Attendance, or Lab — or create your own. Names you create stay in the list so you can pick Quiz again on another course. Weight is the syllabus slice; score is what you got. Clear a weight to type 20, not 020. If a score, average, or the weights go over 100%, a notice frame asks you to check the numbers.",
   },
   {
     target: "terms",

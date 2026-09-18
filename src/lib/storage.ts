@@ -6,6 +6,7 @@ import type {
   PlannerState,
   TermPlan,
 } from "./types";
+import { mergeCustomComponents } from "./calculator-components";
 import { asCalcTerm, winterNow } from "./winter";
 
 const CALC_KEY = "usp.calculator";
@@ -84,16 +85,19 @@ export function loadCalculator(): CalculatorState {
     return {
       courses: uniquifyCourses(raw as CalculatorCourse[], fallback),
       targets: EMPTY_TARGETS,
+      customComponents: mergeCustomComponents([], raw as CalculatorCourse[]),
     };
   }
   if (raw && typeof raw === "object" && Array.isArray((raw as CalculatorState).courses)) {
     const state = raw as CalculatorState;
+    const courses = uniquifyCourses(state.courses, fallback);
     return {
-      courses: uniquifyCourses(state.courses, fallback),
+      courses,
       targets: normalizeTargets(state.targets),
+      customComponents: mergeCustomComponents(state.customComponents ?? [], courses),
     };
   }
-  return { courses: [], targets: EMPTY_TARGETS };
+  return { courses: [], targets: EMPTY_TARGETS, customComponents: [] };
 }
 
 export function saveCalculator(state: CalculatorState) {

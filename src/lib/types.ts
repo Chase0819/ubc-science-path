@@ -56,6 +56,7 @@ export type CalculatorTargets = {
 export type CalculatorState = {
   courses: CalculatorCourse[];
   targets: CalculatorTargets;
+  customComponents: string[];
 };
 
 export type PlannerState = {

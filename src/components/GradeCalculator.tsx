@@ -7,6 +7,10 @@ import {
   type CalcCourseOption,
 } from "@/lib/calculator-courses";
 import {
+  filterComponentOptions,
+  rememberCustomComponent,
+} from "@/lib/calculator-components";
+import {
   componentPercent,
   creditWeighted,
   letterFromPercent,
@@ -25,13 +29,19 @@ import type {
 } from "@/lib/types";
 import { winterNow } from "@/lib/winter";
 import { AverageAnalysis } from "@/components/AverageAnalysis";
+import {
+  CalculatorOverNotice,
+  collectOver100,
+  courseHasOver100,
+  over100IssueKey,
+} from "@/components/CalculatorOverNotice";
 import { CalculatorTutorial } from "@/components/CalculatorTutorial";
 
 type AverageEntry = {
   id: string;
   code: string;
   percent: number | null;
-  pull: number | null;
+  vsAverage: number | null;
 };
 
 type GradedRow = {
@@ -43,8 +53,6 @@ type GradedRow = {
 function uid() {
   return newCalcId();
 }
-
-const COMPONENT_PRESETS = ["Assignments", "Midterm", "Final", "Attendance", "Lab"] as const;
 
 function emptyComponent(): GradeComponent {
   return { id: uid(), name: "", weight: 30, score: "" };
@@ -91,9 +99,11 @@ export function GradeCalculator() {
     term2: "",
     combined: "",
   });
+  const [customComponents, setCustomComponents] = useState<string[]>([]);
   const [analysis, setAnalysis] = useState<"term1" | "term2" | "combined" | null>(null);
   const [ready, setReady] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [overDismissed, setOverDismissed] = useState("");
   const skipSave = useRef(true);
   const clock = winterNow();
 
@@ -101,6 +111,7 @@ export function GradeCalculator() {
     const saved = loadCalculator();
     setCourses(saved.courses.length ? saved.courses : [emptyCourse(winterNow().term)]);
     setTargets(saved.targets);
+    setCustomComponents(saved.customComponents);
     setReady(true);
   }, []);
 
@@ -115,8 +126,8 @@ export function GradeCalculator() {
       skipSave.current = false;
       return;
     }
-    saveCalculator({ courses, targets });
-  }, [courses, targets]);
+    saveCalculator({ courses, targets, customComponents });
+  }, [courses, targets, customComponents]);
 
   const graded = useMemo(() => {
     return courses
@@ -164,6 +175,21 @@ export function GradeCalculator() {
     term2Courses,
     targets.combined,
   );
+  const over100 = useMemo(
+    () =>
+      collectOver100(courses, {
+        term1: term1?.percent ?? null,
+        term2: term2?.percent ?? null,
+        combined: combined?.percent ?? null,
+      }),
+    [courses, term1, term2, combined],
+  );
+  const overKey = over100IssueKey(over100);
+  const showOver100 = !tourOpen && over100.length > 0 && overDismissed !== overKey;
+
+  function rememberName(name: string) {
+    setCustomComponents((list) => rememberCustomComponent(list, name));
+  }
 
   useEffect(() => {
     if (combinedPercent !== null) saveSessional(round1(combinedPercent));
@@ -231,17 +257,24 @@ export function GradeCalculator() {
           current={clock.term === "term1"}
           courses={term1Courses}
           setCourses={setCourses}
+          customComponents={customComponents}
+          onRememberComponent={rememberName}
         />
         <TermColumn
           term="term2"
           current={clock.term === "term2"}
           courses={term2Courses}
           setCourses={setCourses}
+          customComponents={customComponents}
+          onRememberComponent={rememberName}
         />
       </div>
       </div>
 
       {tourOpen ? <CalculatorTutorial onClose={() => setTourOpen(false)} /> : null}
+      {showOver100 ? (
+        <CalculatorOverNotice issues={over100} onClose={() => setOverDismissed(overKey)} />
+      ) : null}
 
       {analysis ? (
         <AverageAnalysis
@@ -259,6 +292,16 @@ export function GradeCalculator() {
                 ? term2Courses
                 : codedCourses
           }
+          target={
+            analysis === "term1"
+              ? targets.term1
+              : analysis === "term2"
+                ? targets.term2
+                : targets.combined
+          }
+          targetLabel={
+            analysis === "term1" ? "Term 1 target" : analysis === "term2" ? "Term 2 target" : "Winter target"
+          }
           onClose={() => setAnalysis(null)}
         />
       ) : null}
@@ -271,11 +314,15 @@ function TermColumn({
   current,
   courses,
   setCourses,
+  customComponents,
+  onRememberComponent,
 }: {
   term: CalcTerm;
   current: boolean;
   courses: CalculatorCourse[];
   setCourses: React.Dispatch<React.SetStateAction<CalculatorCourse[]>>;
+  customComponents: string[];
+  onRememberComponent: (name: string) => void;
 }) {
   const meta = TERM_META[term];
   const credits = courses.reduce((sum, course) => sum + (course.credits || 0), 0);
@@ -311,6 +358,8 @@ function TermColumn({
               key={course.id}
               course={course}
               setCourses={setCourses}
+              customComponents={customComponents}
+              onRememberComponent={onRememberComponent}
             />
           ))
         )}
@@ -332,18 +381,28 @@ function TermColumn({
 function CourseCard({
   course,
   setCourses,
+  customComponents,
+  onRememberComponent,
 }: {
   course: CalculatorCourse;
   setCourses: React.Dispatch<React.SetStateAction<CalculatorCourse[]>>;
+  customComponents: string[];
+  onRememberComponent: (name: string) => void;
 }) {
   const percent = coursePercent(course);
   const target = typeof course.target === "number" ? course.target : null;
   const leftover =
     target === null ? null : remainingNeeded(course.components, target);
   const weightTotal = course.components.reduce((sum, row) => sum + (Number(row.weight) || 0), 0);
+  const over = courseHasOver100(course);
+  const weightsOver = weightTotal > 100;
 
   return (
-    <article className="relative z-0 rounded-2xl border-2 border-[#142033] bg-white px-4 py-4 shadow-[3px_3px_0_#142033] focus-within:z-30 sm:px-5 sm:py-5">
+    <article
+      className={`relative z-0 rounded-2xl border-2 px-4 py-4 shadow-[3px_3px_0_#142033] focus-within:z-30 sm:px-5 sm:py-5 ${
+        over ? "border-[#b42318] bg-[#fdecea]" : "border-[#142033] bg-white"
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <CourseSearch course={course} setCourses={setCourses} />
         <label className="grid w-20 shrink-0 gap-1 text-xs font-bold">
@@ -360,7 +419,7 @@ function CourseCard({
           />
         </label>
         <div className="min-w-[5.5rem] shrink-0 pt-5 text-right">
-          <p className="text-2xl font-black tabular-nums leading-none">
+          <p className={`text-2xl font-black tabular-nums leading-none ${percent !== null && percent > 100 ? "text-[#b42318]" : ""}`}>
             {percent === null ? "—" : `${round1(percent)}%`}
           </p>
           <p className="mt-1 text-xs font-semibold text-[var(--muted)]">
@@ -413,9 +472,15 @@ function CourseCard({
               courseId={course.id}
               component={row}
               setCourses={setCourses}
+              savedNames={customComponents}
+              onRememberName={onRememberComponent}
             />
             <input
-              className="rounded-xl border-2 border-[#142033] bg-white px-2 py-1.5 text-sm font-bold outline-none"
+              className={`rounded-xl border-2 px-2 py-1.5 text-sm font-bold outline-none ${
+                row.weight !== "" && Number(row.weight) > 100
+                  ? "border-[#b42318] bg-[#fde8e6]"
+                  : "border-[#142033] bg-white"
+              }`}
               type="number"
               min={0}
               placeholder="—"
@@ -427,10 +492,13 @@ function CourseCard({
               }
             />
             <input
-              className="rounded-xl border-2 border-[#142033] bg-white px-2 py-1.5 text-sm font-bold outline-none"
+              className={`rounded-xl border-2 px-2 py-1.5 text-sm font-bold outline-none ${
+                row.score !== "" && Number(row.score) > 100
+                  ? "border-[#b42318] bg-[#fde8e6]"
+                  : "border-[#142033] bg-white"
+              }`}
               type="number"
               min={0}
-              max={100}
               placeholder="—"
               value={row.score}
               onChange={(e) =>
@@ -479,11 +547,20 @@ function CourseCard({
         </button>
         <span
           className={`font-semibold ${
-            Math.abs(weightTotal - 100) < 0.5 ? "text-[var(--muted)]" : "text-amber-800"
+            weightsOver
+              ? "text-[#b42318]"
+              : Math.abs(weightTotal - 100) < 0.5
+                ? "text-[var(--muted)]"
+                : "text-amber-800"
           }`}
         >
-          Weights {round1(weightTotal)}%
+          Weights {round1(weightTotal)}%{weightsOver ? " — over 100%" : ""}
         </span>
+        {over ? (
+          <span className="rounded-full border-2 border-[#142033] bg-white px-2 py-0.5 font-bold text-[#b42318]">
+            Check a number over 100%
+          </span>
+        ) : null}
         {leftover && leftover.neededOnRemaining !== null && target !== null ? (
           <span className="text-[var(--muted)]">
             Need{" "}
@@ -587,11 +664,7 @@ function AverageCard({
         </p>
         {gap !== null ? (
           <p className={`text-base font-black tabular-nums ${pullClass(gap)}`}>
-            {gap === 0
-              ? "on target"
-              : gap > 0
-                ? `+${gap}% above`
-                : `−${Math.abs(gap)}% below`}
+            {formatTargetGap(gap)}
           </p>
         ) : null}
       </div>
@@ -615,11 +688,13 @@ function AverageCard({
           {entries.map((row) => (
             <li key={row.id} className="flex items-baseline justify-between gap-2">
               <span className="min-w-0 truncate">{row.code}</span>
-              <span className="shrink-0 tabular-nums">
+              <span className="shrink-0 text-right tabular-nums">
                 <span className="text-[var(--muted)]">
                   {row.percent === null ? "—" : `${round1(row.percent)}%`}
                 </span>
-                <span className={`ml-2 ${pullClass(row.pull)}`}>{formatPull(row.pull)}</span>
+                <span className={`ml-2 ${pullClass(row.vsAverage)}`}>
+                  {formatVsAverage(row.vsAverage, combined)}
+                </span>
               </span>
             </li>
           ))}
@@ -636,20 +711,18 @@ function AverageCard({
   );
 }
 
-function filterComponentPresets(query: string): string[] {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return [...COMPONENT_PRESETS];
-  return COMPONENT_PRESETS.filter((name) => name.toLowerCase().includes(needle));
-}
-
 function ComponentNamePick({
   courseId,
   component,
   setCourses,
+  savedNames,
+  onRememberName,
 }: {
   courseId: string;
   component: GradeComponent;
   setCourses: React.Dispatch<React.SetStateAction<CalculatorCourse[]>>;
+  savedNames: string[];
+  onRememberName: (name: string) => void;
 }) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -660,8 +733,8 @@ function ComponentNamePick({
   const [typed, setTyped] = useState(false);
   const [active, setActive] = useState(0);
   const matches = useMemo(
-    () => (typed ? filterComponentPresets(query) : [...COMPONENT_PRESETS]),
-    [query, typed],
+    () => filterComponentOptions(savedNames, query, typed),
+    [savedNames, query, typed],
   );
   const optionCount = matches.length + 1;
 
@@ -686,8 +759,21 @@ function ComponentNamePick({
     updateComponent(setCourses, courseId, component.id, { name });
   }
 
-  function pickPreset(name: string) {
+  function pickOption(name: string) {
     setName(name);
+    onRememberName(name);
+    setOpen(false);
+    setTyped(false);
+  }
+
+  function keepTypedName() {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      pickCustom();
+      return;
+    }
+    setName(trimmed);
+    onRememberName(trimmed);
     setOpen(false);
     setTyped(false);
   }
@@ -717,13 +803,14 @@ function ComponentNamePick({
     }
     if (event.key === "Escape") {
       setOpen(false);
+      onRememberName(query);
       return;
     }
     if (event.key === "Enter") {
       event.preventDefault();
-      if (active >= matches.length) pickCustom();
-      else if (matches[active]) pickPreset(matches[active]);
-      else pickCustom();
+      if (active >= matches.length) keepTypedName();
+      else if (matches[active]) pickOption(matches[active].name);
+      else keepTypedName();
     }
   }
 
@@ -758,6 +845,7 @@ function ComponentNamePick({
           setName(event.target.value);
           setOpen(true);
         }}
+        onBlur={() => onRememberName(query)}
         onKeyDown={onKeyDown}
       />
       {open ? (
@@ -766,8 +854,8 @@ function ComponentNamePick({
           role="listbox"
           className="absolute z-40 mt-1 max-h-64 w-[min(18rem,calc(100vw-6rem))] overflow-auto rounded-2xl border-2 border-[#142033] bg-white py-1 shadow-[4px_4px_0_#142033]"
         >
-          {matches.map((name, index) => (
-            <li key={name} role="option" aria-selected={index === active}>
+          {matches.map((option, index) => (
+            <li key={`${option.custom ? "c" : "p"}-${option.name}`} role="option" aria-selected={index === active}>
               <button
                 type="button"
                 className={`w-full px-3 py-2 text-left text-sm font-bold ${
@@ -775,9 +863,14 @@ function ComponentNamePick({
                 }`}
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActive(index)}
-                onClick={() => pickPreset(name)}
+                onClick={() => pickOption(option.name)}
               >
-                {name}
+                {option.name}
+                {option.custom ? (
+                  <span className="ml-2 text-[10px] font-bold tracking-wide text-[#3d7a45] uppercase">
+                    yours
+                  </span>
+                ) : null}
               </button>
             </li>
           ))}
@@ -1075,26 +1168,32 @@ function averageEntries(
 
   return pool.map((course) => {
     const percent = coursePercent(course);
-    const inAverage = percent !== null && (course.credits || 0) > 0;
-    let pull: number | null = null;
-    if (inAverage && withAll) {
-      const without = creditWeighted(counted.filter((row) => row.course.id !== course.id));
-      pull = without === null ? 0 : withAll.percent - without.percent;
-    }
-    return { id: course.id, code: course.code, percent, pull };
+    const vsAverage =
+      percent === null || !withAll || (course.credits || 0) <= 0
+        ? null
+        : percent - withAll.percent;
+    return { id: course.id, code: course.code, percent, vsAverage };
   });
 }
 
-function formatPull(pull: number | null): string {
-  if (pull === null) return "—";
-  const n = round1(pull);
-  if (n === 0) return "0%";
-  return n > 0 ? `+${n}%` : `−${Math.abs(n)}%`;
+function formatTargetGap(gap: number): string {
+  if (gap === 0) return "on target score";
+  return gap > 0
+    ? `+${gap}% above target score`
+    : `−${Math.abs(gap)}% below target score`;
 }
 
-function pullClass(pull: number | null): string {
-  if (pull === null) return "text-[var(--muted)]";
-  const n = round1(pull);
+function formatVsAverage(diff: number | null, combined?: boolean): string {
+  const vs = combined ? "vs this winter average" : "vs this term average";
+  if (diff === null) return "—";
+  const n = round1(diff);
+  if (n === 0) return `0% ${vs}`;
+  return n > 0 ? `+${n}% ${vs}` : `−${Math.abs(n)}% ${vs}`;
+}
+
+function pullClass(diff: number | null): string {
+  if (diff === null) return "text-[var(--muted)]";
+  const n = round1(diff);
   if (n > 0) return "text-[#2f6b38]";
   if (n < 0) return "text-[#b42318]";
   return "text-[var(--muted)]";
