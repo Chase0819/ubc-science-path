@@ -296,12 +296,16 @@ export default function Home() {
                 courses, so average does not matter yet.
               </li>
               <li>
-                <strong className="text-[var(--ink)]">Reach / possible</strong> — eligible, but
-                historically below the last cutoff.
+                <strong className="text-[var(--ink)]">Low</strong> — eligible, but below most
+                recent published cutoffs.
               </li>
               <li>
-                <strong className="text-[var(--ink)]">Likely / open</strong> — above recent
-                cutoffs, or the program has no quota.
+                <strong className="text-[var(--ink)]">Medium</strong> — around the recent cutoff
+                line, mixed with previous years.
+              </li>
+              <li>
+                <strong className="text-[var(--ink)]">High</strong> — above recent cutoffs, or
+                the program has no quota.
               </li>
             </ul>
           </div>

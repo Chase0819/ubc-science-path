@@ -7,8 +7,8 @@ export default function OutlookPage() {
       <header className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight">Major outlook</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Uses your calculator average when it exists. This is a local model, not an admission
-          decision.
+          Uses your calculator average when it exists. Chance is Low, Medium, or High from
+          published cutoffs — not an admission decision.
         </p>
       </header>
       <Suspense fallback={<p className="text-[var(--muted)]">Loading outlook…</p>}>

@@ -2,18 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { predictAdmission } from "@/lib/admission-model";
+import { predictAdmission, type Chance } from "@/lib/admission-model";
 import { gpaFromPercent, round1, round2 } from "@/lib/grades";
 import { SPECIALIZATIONS } from "@/lib/specializations";
 import { loadPlanner, loadSessional } from "@/lib/storage";
 
-const bandStyles: Record<string, string> = {
+const chanceStyles: Record<Chance, string> = {
   blocked: "bg-red-50 text-red-900 border-red-200",
-  reach: "bg-orange-50 text-orange-950 border-orange-200",
-  possible: "bg-amber-50 text-amber-950 border-amber-200",
-  competitive: "bg-sky-50 text-sky-950 border-sky-200",
-  likely: "bg-emerald-50 text-emerald-950 border-emerald-200",
-  open: "bg-emerald-50 text-emerald-950 border-emerald-200",
+  low: "bg-orange-50 text-orange-950 border-orange-200",
+  medium: "bg-amber-50 text-amber-950 border-amber-200",
+  high: "bg-emerald-50 text-emerald-950 border-emerald-200",
+};
+
+const chanceWord: Record<Chance, string> = {
+  blocked: "Blocked",
+  low: "Low",
+  medium: "Medium",
+  high: "High",
 };
 
 export function AdmissionOutlook() {
@@ -79,35 +84,36 @@ export function AdmissionOutlook() {
         uses percent, not GPA.
       </p>
 
-      <section
-        className={`rounded-2xl border p-6 ${bandStyles[outlook.band]}`}
-      >
-        <p className="text-sm uppercase tracking-wide opacity-80">{outlook.band}</p>
-        <h2 className="mt-1 text-2xl font-semibold">{outlook.headline}</h2>
-        <p className="mt-4 text-5xl font-semibold tabular-nums">
-          {Math.round(outlook.probability * 100)}%
+      <section className={`rounded-2xl border p-6 ${chanceStyles[outlook.chance]}`}>
+        <p className="text-sm uppercase tracking-wide opacity-80">Chance</p>
+        <p className="mt-2 text-5xl font-black tracking-tight">{chanceWord[outlook.chance]}</p>
+        <h2 className="mt-3 text-2xl font-semibold">{outlook.headline}</h2>
+        <p className="mt-2 text-sm opacity-80">
+          Based on published winter-session cutoffs, not a UBC decision.
         </p>
-        <p className="mt-1 text-sm opacity-80">modelled chance of placement into this choice</p>
-        <div className="mt-4 h-3 overflow-hidden rounded-full bg-black/10">
-          <div
-            className="h-full rounded-full bg-[var(--navy)]"
-            style={{ width: `${Math.round(outlook.probability * 100)}%` }}
-          />
-        </div>
-        <p className="mt-4 text-sm leading-6">{outlook.detail}</p>
-        <p className="mt-3 text-sm">{outlook.trend}</p>
-        <p className="mt-2 text-sm">Latest published line: {outlook.latestLabel}</p>
+      </section>
+
+      <section className="rounded-2xl border border-[var(--line)] bg-white p-5">
+        <h3 className="font-semibold">
+          Why this reads {chanceWord[outlook.chance]}
+        </h3>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-[var(--muted)]">
+          {outlook.reasons.map((reason) => (
+            <li key={reason}>
+              <span className="text-[var(--ink)]">{reason}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="rounded-2xl border border-[var(--line)] bg-white p-5 text-sm leading-6">
-        <h3 className="font-semibold">How this small model works</h3>
+        <h3 className="font-semibold">How to read this</h3>
         <p className="mt-2 text-[var(--muted)]">
-          There is no public student-level training set, so this is not a neural net and it is
-          not official. It is a local statistical model: eligibility is a hard gate, then a
-          logistic curve is centred on a blend of the latest published cutoff and the historical
-          mean, with width from year-to-year cutoff swing. Open / NF specializations score high
-          once you are eligible. Cutoffs move with demand and seat counts — beating last year
-          does not guarantee this year.
+          There is no public student-level training set, so this is not official. If eligibility
+          is missing, the result is Blocked. Otherwise Low, Medium, or High comes from how your
+          winter-session average sits against each published cutoff from recent years. Open / NF
+          specializations read High once you are eligible. Cutoffs move with demand and seat
+          counts — beating last year does not guarantee this year.
         </p>
         <p className="mt-2 text-[var(--muted)]">
           Historical figures: UBC Faculty of Science, Historical BSc Specialization Admission
