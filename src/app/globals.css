@@ -570,3 +570,22 @@ html.tutorial-no-scroll body {
   filter: blur(12px);
   z-index: -1;
 }
+
+.planner-chill.outlook-chill::before {
+  background: #c62828;
+  opacity: 0.18;
+}
+
+.planner-chill.outlook-chill::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: auto auto 8% -4rem;
+  height: 16rem;
+  width: 16rem;
+  border-radius: 999px;
+  background: #f8d0d0;
+  opacity: 0.4;
+  filter: blur(12px);
+  z-index: -1;
+}

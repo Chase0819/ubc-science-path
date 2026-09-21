@@ -62,6 +62,10 @@ function withScie(req: Requirement): Requirement {
 }
 
 const Y = (year: number, value: number | "NF" | "sup" | null) => ({ year, value });
+const MIX = (year: number, domestic: number, international: number) => ({
+  year,
+  value: Math.round(((domestic + international) / 2) * 10) / 10,
+});
 
 const coreFirstYear = [
   "MATH 100",
@@ -84,7 +88,13 @@ export const SPECIALIZATIONS: Specialization[] = [
       "Computer Science specializations sit under a faculty-wide umbrella quota. You may rank at most two CS-umbrella choices.",
     ],
     recommended: ["CPSC 110", "CPSC 121", "MATH 100", "MATH 101", "SCIE 113", "DSCI 100"],
-    cutoffs: [Y(2022, 81.6), Y(2023, 83.5), Y(2024, 82.6), Y(2025, 78.9), Y(2026, 76.5)],
+    cutoffs: [
+      MIX(2022, 81.6, 83.0),
+      MIX(2023, 83.5, 84.6),
+      MIX(2024, 82.6, 83.5),
+      Y(2025, 78.9),
+      Y(2026, 76.5),
+    ],
   },
   {
     id: "nsci",
@@ -206,7 +216,7 @@ export const SPECIALIZATIONS: Specialization[] = [
     eligibility: withScie({ kind: "all", items: [cpsc(), integral()] }),
     notes: ["Sub-quota inside the Computer Science and Statistics umbrellas."],
     recommended: ["CPSC 110", "CPSC 121", "MATH 100", "MATH 101", "DSCI 100"],
-    cutoffs: [Y(2022, 85.4), Y(2025, 81.8), Y(2026, 81.1)],
+    cutoffs: [MIX(2022, 85.4, 83.1), Y(2025, 81.8), Y(2026, 81.1)],
   },
   {
     id: "cogs-brain",
@@ -228,7 +238,13 @@ export const SPECIALIZATIONS: Specialization[] = [
     eligibility: withScie(cpsc()),
     notes: ["Sub-quota inside Computer Science and Cognitive Systems."],
     recommended: ["CPSC 110", "CPSC 121", "MATH 100", "MATH 101", "SCIE 113"],
-    cutoffs: [Y(2022, 81.8), Y(2023, 84.6), Y(2024, 84.0), Y(2025, 83.0), Y(2026, 83.1)],
+    cutoffs: [
+      MIX(2022, 81.8, 86.5),
+      MIX(2023, 84.6, 86.0),
+      MIX(2024, 84.0, 89.0),
+      Y(2025, 83.0),
+      Y(2026, 83.1),
+    ],
   },
   {
     id: "ensc",
@@ -339,7 +355,7 @@ export const SPECIALIZATIONS: Specialization[] = [
     eligibility: withScie({ kind: "all", items: [cpsc(), chem(), biol112or121()] }),
     notes: ["Sub-quota inside Computer Science. Rank at most two CS-umbrella choices."],
     recommended: ["CPSC 110", "CPSC 121", "CHEM 121", "CHEM 123", "BIOL 112", "BIOL 121"],
-    cutoffs: [Y(2022, 82.1), Y(2023, 85.1), Y(2024, 91.5), Y(2025, "sup"), Y(2026, null)],
+    cutoffs: [MIX(2022, 82.1, 83.2), Y(2023, 85.1), Y(2024, 91.5), Y(2025, "sup"), Y(2026, null)],
   },
   {
     id: "cpsc-math",
@@ -350,7 +366,13 @@ export const SPECIALIZATIONS: Specialization[] = [
     eligibility: withScie({ kind: "all", items: [cpsc(), integral()] }),
     notes: [],
     recommended: ["CPSC 110", "CPSC 121", "MATH 100", "MATH 101"],
-    cutoffs: [Y(2022, 82.9), Y(2023, 84.9), Y(2024, 83.5), Y(2025, 80.6), Y(2026, 77.4)],
+    cutoffs: [
+      MIX(2022, 82.9, 84.6),
+      MIX(2023, 84.9, 84.5),
+      MIX(2024, 83.5, 84.6),
+      Y(2025, 80.6),
+      Y(2026, 77.4),
+    ],
   },
   {
     id: "cpsc-stat",
@@ -361,7 +383,13 @@ export const SPECIALIZATIONS: Specialization[] = [
     eligibility: withScie({ kind: "all", items: [cpsc(), integral()] }),
     notes: [],
     recommended: ["CPSC 110", "CPSC 121", "MATH 100", "MATH 101", "DSCI 100"],
-    cutoffs: [Y(2022, 81.8), Y(2023, 84.1), Y(2024, 83.1), Y(2025, 82.0), Y(2026, 78.3)],
+    cutoffs: [
+      MIX(2022, 81.8, 83.7),
+      MIX(2023, 84.1, 84.6),
+      MIX(2024, 83.1, 85.2),
+      Y(2025, 82.0),
+      Y(2026, 78.3),
+    ],
   },
   {
     id: "cpsc-phys",
@@ -372,7 +400,13 @@ export const SPECIALIZATIONS: Specialization[] = [
     eligibility: withScie({ kind: "all", items: [cpsc(), integral(), physLab()] }),
     notes: [],
     recommended: ["CPSC 110", "MATH 100", "MATH 101", "PHYS 117", "PHYS 118", "PHYS 119"],
-    cutoffs: [Y(2022, 87.7), Y(2023, 84.6), Y(2024, 84.9), Y(2025, 82.6), Y(2026, 77.7)],
+    cutoffs: [
+      MIX(2022, 87.7, 84.1),
+      MIX(2023, 84.6, 85.3),
+      MIX(2024, 84.9, 89.4),
+      Y(2025, 82.6),
+      Y(2026, 77.7),
+    ],
   },
   {
     id: "cpsc-chem",
@@ -394,7 +428,7 @@ export const SPECIALIZATIONS: Specialization[] = [
     eligibility: withScie({ kind: "all", items: [cpsc(), chem(), biol112()] }),
     notes: ["Sub-quota inside Computer Science."],
     recommended: ["CPSC 110", "CHEM 121", "CHEM 123", "BIOL 112"],
-    cutoffs: [Y(2022, 81.6), Y(2023, 84.0), Y(2024, 85.9), Y(2026, 85.4)],
+    cutoffs: [Y(2022, 81.6), Y(2023, 84.0), MIX(2024, 85.9, 84.9), Y(2026, 85.4)],
   },
   {
     id: "cpsc-nsci",

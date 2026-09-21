@@ -3,12 +3,41 @@ import type { Cutoff, Specialization } from "./types";
 
 export type Chance = "blocked" | "low" | "medium" | "high";
 
+export const HISTORICAL_CUTOFFS_URL =
+  "https://science.ubc.ca/students/historical-bsc-specialization-admission-information";
+
+export const COMBINED_CUTOFF_YEAR = 2025;
+
+export function cutoffMixNote(spec: Specialization): string {
+  if (spec.umbrella === "computer-science") {
+    return `Through 2024, Computer Science cutoffs were published separately for domestic and international students. Each 2022–2024 point here is the average of those two lines. From ${COMBINED_CUTOFF_YEAR} on, Science published one combined cutoff — there was no DOM/INT split.`;
+  }
+  return "These published cutoffs are overall winter-session averages for that year, not split into domestic and international groups.";
+}
+
 export type Outlook = {
   chance: Chance;
   headline: string;
   reasons: string[];
   missing: string[];
 };
+
+export type CutoffChartPoint = {
+  year: number;
+  value: number | null;
+  mark: "cutoff" | "nf" | "sup" | "none";
+};
+
+export function cutoffChartPoints(spec: Specialization): CutoffChartPoint[] {
+  return spec.cutoffs.map((row) => {
+    if (typeof row.value === "number") {
+      return { year: row.year, value: row.value, mark: "cutoff" as const };
+    }
+    if (row.value === "NF") return { year: row.year, value: null, mark: "nf" as const };
+    if (row.value === "sup") return { year: row.year, value: null, mark: "sup" as const };
+    return { year: row.year, value: null, mark: "none" as const };
+  });
+}
 
 export function predictAdmission(options: {
   spec: Specialization;
@@ -126,6 +155,7 @@ export function predictAdmission(options: {
       `Eligibility courses for ${spec.name} are marked complete in the planner.`,
       summary,
       ...yearByYearReasons(spec, sessional),
+      ...(spec.umbrella === "computer-science" ? [cutoffMixNote(spec)] : []),
       "Cutoffs move with demand and seat counts. Beating last year does not guarantee this year, and this is not UBC's decision.",
     ],
     missing,
