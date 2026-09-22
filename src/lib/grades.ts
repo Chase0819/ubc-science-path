@@ -34,6 +34,24 @@ export function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+export function sanitizePercentInput(raw: string): string {
+  const cleaned = raw.replace(/[^\d.]/g, "");
+  if (cleaned === "") return "";
+  if (cleaned === ".") return ".";
+  const dot = cleaned.indexOf(".");
+  const intRaw = dot === -1 ? cleaned : cleaned.slice(0, dot);
+  const frac = dot === -1 ? null : cleaned.slice(dot + 1).replace(/\./g, "");
+  const intPart = intRaw.replace(/^0+(?=\d)/, "") || (frac !== null ? "0" : "");
+  if (frac !== null) return `${intPart || "0"}.${frac}`;
+  return intPart;
+}
+
+export function parsePercentInput(raw: string): number | null {
+  if (raw.trim() === "" || raw === ".") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function creditWeighted(
   rows: { percent: number; credits: number }[],
 ): { percent: number; credits: number; gpa: number } | null {

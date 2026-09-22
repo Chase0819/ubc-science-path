@@ -1,7 +1,11 @@
-import { meetsRequirement, missingPieces } from "./requirements";
-import type { Cutoff, Specialization } from "./types";
+import type { Specialization } from "./types";
 
-export type Chance = "blocked" | "low" | "medium" | "high";
+export type Chance = "low" | "medium" | "high";
+
+export type ExplanationBit = {
+  text: string;
+  strong?: boolean;
+};
 
 export const HISTORICAL_CUTOFFS_URL =
   "https://science.ubc.ca/students/historical-bsc-specialization-admission-information";
@@ -18,8 +22,17 @@ export function cutoffMixNote(spec: Specialization): string {
 export type Outlook = {
   chance: Chance;
   headline: string;
-  reasons: string[];
-  missing: string[];
+  explanation: ExplanationBit[];
+  forecast: CutoffForecast | null;
+};
+
+export type CutoffForecast = {
+  year: number;
+  value: number;
+  slope: number;
+  fromYear: number;
+  toYear: number;
+  lastPublished: { year: number; value: number };
 };
 
 export type CutoffChartPoint = {
@@ -39,168 +52,220 @@ export function cutoffChartPoints(spec: Specialization): CutoffChartPoint[] {
   });
 }
 
-export function predictAdmission(options: {
-  spec: Specialization;
-  sessional: number;
-  completed: string[];
-}): Outlook {
-  const { spec, sessional, completed } = options;
-  const missing = missingPieces(spec.eligibility, completed);
-  const eligible = meetsRequirement(spec.eligibility, completed);
-  const avg = `${sessional.toFixed(1)}%`;
+function numericCutoffs(spec: Specialization) {
+  return spec.cutoffs.filter(
+    (row): row is { year: number; value: number } => typeof row.value === "number",
+  );
+}
 
-  if (!eligible) {
+export function forecastCutoff(spec: Specialization): CutoffForecast | null {
+  const numeric = numericCutoffs(spec);
+  if (numeric.length === 0) return null;
+
+  const lastPublished = numeric[numeric.length - 1];
+  const year = lastPublished.year + 1;
+  const recent = numeric.slice(-5);
+  const fromYear = recent[0].year;
+  const toYear = recent[recent.length - 1].year;
+
+  if (recent.length === 1) {
     return {
-      chance: "blocked",
-      headline: "Not eligible to apply yet",
-      reasons: [
-        "UBC Science will not place you until every eligibility course is finished by the end of Winter Session. Average only matters after that.",
-        ...missing.map((course) => `${course} is still missing from the planner.`),
-      ],
-      missing,
+      year,
+      value: lastPublished.value,
+      slope: 0,
+      fromYear,
+      toYear,
+      lastPublished,
     };
   }
 
+  const n = recent.length;
+  const meanX = recent.reduce((sum, row) => sum + row.year, 0) / n;
+  const meanY = recent.reduce((sum, row) => sum + row.value, 0) / n;
+  let num = 0;
+  let den = 0;
+  for (const row of recent) {
+    num += (row.year - meanX) * (row.value - meanY);
+    den += (row.year - meanX) ** 2;
+  }
+  const slope = den === 0 ? 0 : num / den;
+  const intercept = meanY - slope * meanX;
+  const raw = intercept + slope * year;
+  const clamped = Math.min(lastPublished.value + 6, Math.max(lastPublished.value - 6, raw));
+  const value = Math.round(Math.min(100, Math.max(40, clamped)) * 10) / 10;
+
+  return {
+    year,
+    value,
+    slope: Math.round(slope * 10) / 10,
+    fromYear,
+    toYear,
+    lastPublished,
+  };
+}
+
+export function predictAdmission(options: {
+  spec: Specialization;
+  sessional: number;
+}): Outlook {
+  const { spec, sessional } = options;
+  const avg = `${sessional.toFixed(1)}%`;
+  const forecast = forecastCutoff(spec);
+  const assumed = "This assumes you already took the required courses.";
+  const disclaimer = {
+    text: "This is only based on past published cutoffs — not a UBC decision.",
+    strong: true,
+  };
+
   if (spec.minSessional && sessional < spec.minSessional) {
     return {
-      chance: "blocked",
-      headline: `Below the ${spec.minSessional}% honours floor`,
-      reasons: [
-        `This honours path lists a minimum winter-session average of ${spec.minSessional}%. Your ${avg} is below that floor, so cutoff history does not apply yet.`,
-      ],
-      missing,
+      chance: "low",
+      headline: "Low on past cutoffs",
+      explanation: paragraph(
+        assumed,
+        `This honours path listed a ${spec.minSessional}% winter-session floor, and your ${avg} is below that published line.`,
+        disclaimer,
+      ),
+      forecast,
     };
   }
 
   const yearLines = [...spec.cutoffs].reverse();
-  const numeric = spec.cutoffs.filter(
-    (row): row is { year: number; value: number } => typeof row.value === "number",
-  );
-  const lastNumeric = [...numeric].reverse()[0] ?? null;
+  const numeric = numericCutoffs(spec);
+  const lastNumeric = numeric[numeric.length - 1] ?? null;
   const above = numeric.filter((row) => sessional + 1e-9 >= row.value);
   const below = numeric.filter((row) => sessional < row.value);
   const lastGap = lastNumeric ? sessional - lastNumeric.value : null;
+  const predictedGap = forecast ? sessional - forecast.value : null;
   const lastWasNf = yearLines.find((row) => row.value !== null)?.value === "NF";
 
   if (!spec.quota) {
     return {
       chance: "high",
-      headline: "High chance — this major has no quota",
-      reasons: [
-        `${spec.name} admits eligible students. Published cutoffs are not used to rank this choice.`,
-        `Your ${avg} winter-session average is not a cutoff here. Keep eligibility and second-year standing (typically 24+ credits).`,
-      ],
-      missing,
+      headline: "High — no quota on the cutoff page",
+      explanation: paragraph(
+        assumed,
+        `${spec.name} has no quota, so past cutoff pages are not used to rank it.`,
+        disclaimer,
+      ),
+      forecast,
     };
   }
 
   if (numeric.length === 0 && (lastWasNf || spec.cutoffs.some((row) => row.value === "NF"))) {
     return {
       chance: "high",
-      headline: "High chance — recent years were unfilled",
-      reasons: [
-        `${spec.name} has not used a binding cutoff recently (NF). Eligible applicants got in those years.`,
-        `Your ${avg} winter-session average would have been enough in NF years, as long as you stay eligible.`,
-        ...yearByYearReasons(spec, sessional),
-      ],
-      missing,
+      headline: "High — recent years were unfilled",
+      explanation: paragraph(
+        assumed,
+        {
+          text: "Recent published years were unfilled (NF), so eligible students got in.",
+          strong: true,
+        },
+        disclaimer,
+      ),
+      forecast,
     };
   }
 
   if (numeric.length === 0) {
     return {
       chance: "medium",
-      headline: "Medium chance — little public cutoff history",
-      reasons: [
-        `There is no published numeric cutoff for ${spec.name} to compare with your ${avg} winter-session average.`,
-        ...yearByYearReasons(spec, sessional),
-        "Treat this as a planning hint, not a forecast. Cutoffs only appear when a program fills.",
-      ],
-      missing,
+      headline: "Medium — little public cutoff history",
+      explanation: paragraph(
+        assumed,
+        `There is no published numeric cutoff to compare with your ${avg}.`,
+        disclaimer,
+      ),
+      forecast,
     };
   }
 
-  const chance = chanceFromCutoffs(lastGap, above.length, below.length, numeric.length);
-  const lastLine = lastNumeric
-    ? `${lastNumeric.year} cutoff of ${lastNumeric.value.toFixed(1)}%`
-    : "the latest published cutoff";
-
-  const summary =
+  const chance = chanceFromHistoryAndTrend(
+    lastGap,
+    predictedGap,
+    above.length,
+    below.length,
+    numeric.length,
+  );
+  const lastBit = lastNumeric
+    ? `including ${lastNumeric.year} at ${lastNumeric.value.toFixed(1)}%`
+    : "the latest published year";
+  const vsHistory =
     chance === "high"
-      ? `Your ${avg} winter-session average would have been above ${above.length} of ${numeric.length} published cutoffs${
-          lastGap !== null && lastGap >= 0 ? `, including the ${lastLine}` : ""
-        }. That is why this reads High.`
+      ? `Your ${avg} would have cleared ${above.length} of ${numeric.length} published years, ${lastBit}.`
       : chance === "low"
-        ? `Your ${avg} winter-session average would have been below ${below.length} of ${numeric.length} published cutoffs${
-            lastGap !== null && lastGap < 0 ? `, including the ${lastLine}` : ""
-          }. That is why this reads Low.`
-        : `Your ${avg} winter-session average is close to the recent cutoff line — above ${above.length} and below ${below.length} of ${numeric.length} published years${
-            lastNumeric && lastGap !== null
-              ? lastGap >= 0
-                ? `. You sit ${lastGap.toFixed(1)} points above the ${lastLine}`
-                : `. You sit ${Math.abs(lastGap).toFixed(1)} points below the ${lastLine}`
-              : ""
-          }. That is why this reads Medium.`;
+        ? `Your ${avg} would have sat under ${below.length} of ${numeric.length} published years, ${lastBit}.`
+        : `Your ${avg} is mixed against past years — above ${above.length} and below ${below.length} of ${numeric.length}, ${lastBit}.`;
 
-  const headlines: Record<Exclude<Chance, "blocked">, string> = {
-    low: "Low chance on recent cutoffs",
-    medium: "Medium chance — near recent cutoffs",
-    high: "High chance on recent cutoffs",
+  const headlines: Record<Chance, string> = {
+    low: "Low on past cutoffs",
+    medium: "Medium on past cutoffs",
+    high: "High on past cutoffs",
   };
 
   return {
     chance,
     headline: headlines[chance],
-    reasons: [
-      `Eligibility courses for ${spec.name} are marked complete in the planner.`,
-      summary,
-      ...yearByYearReasons(spec, sessional),
-      ...(spec.umbrella === "computer-science" ? [cutoffMixNote(spec)] : []),
-      "Cutoffs move with demand and seat counts. Beating last year does not guarantee this year, and this is not UBC's decision.",
-    ],
-    missing,
+    explanation: paragraph(assumed, { text: vsHistory, strong: true }, trendSentence(forecast, sessional), disclaimer),
+    forecast,
   };
 }
 
-function chanceFromCutoffs(
+function chanceFromHistoryAndTrend(
   lastGap: number | null,
+  predictedGap: number | null,
   above: number,
   below: number,
   total: number,
-): Exclude<Chance, "blocked"> {
-  if (total > 0 && above === total) return "high";
-  if (lastGap !== null && lastGap >= 3) return "high";
-  if (lastGap !== null && lastGap >= 1 && above >= below) return "high";
-  if (total > 0 && above === 0 && lastGap !== null && lastGap < 0) return "low";
-  if (lastGap !== null && lastGap <= -3) return "low";
+): Chance {
+  const last = lastGap ?? predictedGap;
+  const pred = predictedGap ?? lastGap;
+  if (last === null || pred === null) return "medium";
+
+  if ((last >= 3 && pred >= 1) || (pred >= 3 && last >= 1) || (total > 0 && above === total && pred >= 1)) {
+    return "high";
+  }
+  if (lastGap !== null && lastGap >= 1 && above >= below && pred >= 0) {
+    return "high";
+  }
+  if ((last <= -3 && pred < 0) || (pred <= -3 && last < 0) || (total > 0 && above === 0 && last < 0 && pred < 0)) {
+    return "low";
+  }
   return "medium";
 }
 
-function yearByYearReasons(spec: Specialization, sessional: number): string[] {
-  return [...spec.cutoffs]
-    .reverse()
-    .map((row) => yearReason(row.year, row.value, sessional))
-    .filter((line): line is string => Boolean(line));
+function paragraph(
+  ...parts: Array<string | ExplanationBit | null | undefined>
+): ExplanationBit[] {
+  const bits: ExplanationBit[] = [];
+  for (const part of parts) {
+    if (!part) continue;
+    const bit = typeof part === "string" ? { text: part } : part;
+    if (bits.length) bits.push({ text: " " });
+    bits.push(bit);
+  }
+  return bits;
 }
 
-function yearReason(year: number, value: Cutoff, sessional: number): string | null {
-  const avg = `${sessional.toFixed(1)}%`;
-  if (value === null) {
-    return `${year} has no published cutoff, so it is not used as evidence.`;
-  }
-  if (value === "NF") {
-    return `${year} was not filled (NF). Eligible applicants got in that year, so your ${avg} winter average would have been enough.`;
-  }
-  if (value === "sup") {
-    return `${year} cutoff was suppressed. There is no public number to compare with your ${avg}.`;
-  }
-  const gap = sessional - value;
-  const line = `${year} cutoff was ${value.toFixed(1)}%.`;
-  if (Math.abs(gap) < 0.05) {
-    return `${line} Your ${avg} winter average sits on that line.`;
-  }
-  if (gap > 0) {
-    return `${line} Your ${avg} winter average would have been ${gap.toFixed(1)} points above that line.`;
-  }
-  return `${line} Your ${avg} winter average would have been ${Math.abs(gap).toFixed(1)} points below that line.`;
+function trendSentence(forecast: CutoffForecast | null, sessional: number): string | null {
+  if (!forecast) return null;
+  const gap = sessional - forecast.value;
+  const span =
+    forecast.fromYear === forecast.toYear
+      ? `${forecast.toYear}`
+      : `${forecast.fromYear}–${forecast.toYear}`;
+  const move =
+    Math.abs(forecast.slope) < 0.15
+      ? `Past cutoffs from ${span} were roughly flat`
+      : forecast.slope > 0
+        ? `Past cutoffs from ${span} rose about ${forecast.slope.toFixed(1)} points a year`
+        : `Past cutoffs from ${span} fell about ${Math.abs(forecast.slope).toFixed(1)} points a year`;
+  const vs =
+    Math.abs(gap) < 0.05
+      ? `even with a possible ${forecast.year} line near ${forecast.value.toFixed(1)}%`
+      : gap > 0
+        ? `${gap.toFixed(1)} points above a possible ${forecast.year} line near ${forecast.value.toFixed(1)}%`
+        : `${Math.abs(gap).toFixed(1)} points below a possible ${forecast.year} line near ${forecast.value.toFixed(1)}%`;
+  return `${move}, so your ${sessional.toFixed(1)}% sits ${vs}.`;
 }

@@ -1,18 +1,28 @@
-import { COMBINED_CUTOFF_YEAR, cutoffChartPoints, cutoffMixNote } from "@/lib/admission-model";
+import {
+  COMBINED_CUTOFF_YEAR,
+  cutoffChartPoints,
+  cutoffMixNote,
+  type CutoffForecast,
+} from "@/lib/admission-model";
 import { round1 } from "@/lib/grades";
 import type { Specialization } from "@/lib/types";
 
 export function OutlookCutoffChart({
   spec,
   sessional,
+  forecast,
 }: {
   spec: Specialization;
-  sessional: number;
+  sessional: number | null;
+  forecast: CutoffForecast | null;
 }) {
   const points = cutoffChartPoints(spec);
   const numeric = points.filter(
     (row): row is { year: number; value: number; mark: "cutoff" } => row.mark === "cutoff",
   );
+  const axis = forecast
+    ? [...points, { year: forecast.year, value: forecast.value, mark: "forecast" as const }]
+    : points;
 
   if (points.length === 0) {
     return (
@@ -28,22 +38,27 @@ export function OutlookCutoffChart({
         <YearStrip points={points} />
         <p className="mt-3 text-sm font-medium leading-6 text-[var(--muted)]">
           Recent years are NF, suppressed, or unpublished, so there is no numeric cutoff line to
-          draw against your {round1(sessional)}% winter average.
+          draw
+          {sessional === null ? "." : ` against your ${round1(sessional)}% winter average.`}
         </p>
         <p className="mt-3 text-sm font-black leading-6 text-[#142033]">{cutoffMixNote(spec)}</p>
       </div>
     );
   }
 
-  const avg = Number.isFinite(sessional) ? sessional : 0;
-  const values = [...numeric.map((row) => row.value), avg];
+  const avg = sessional !== null && Number.isFinite(sessional) ? sessional : null;
+  const values = [
+    ...numeric.map((row) => row.value),
+    ...(forecast ? [forecast.value] : []),
+    ...(avg !== null ? [avg] : []),
+  ];
   const { min, max } = yRange(values);
   const ticks = axisTicks(min, max);
 
   const width = 720;
   const height = 360;
   const padL = 48;
-  const padR = 28;
+  const padR = forecast ? 40 : 28;
   const padT = 40;
   const padB = 58;
   const halo = {
@@ -54,14 +69,21 @@ export function OutlookCutoffChart({
   } as const;
   const innerW = width - padL - padR;
   const innerH = height - padT - padB;
+  const count = axis.length;
   const x = (index: number) =>
-    points.length === 1 ? padL + innerW / 2 : padL + (index / (points.length - 1)) * innerW;
+    count === 1 ? padL + innerW / 2 : padL + (index / (count - 1)) * innerW;
   const y = (value: number) => padT + (1 - (clamp(value, min, max) - min) / (max - min)) * innerH;
 
   const cutoffLine = polyline(
     points.map((row, index) => (row.value === null ? null : [x(index), y(row.value)])),
   );
-  const youY = y(avg);
+  const lastNumericIndex = points.reduce(
+    (found, row, index) => (row.value !== null ? index : found),
+    -1,
+  );
+  const forecastX = forecast ? x(axis.length - 1) : 0;
+  const forecastY = forecast ? y(forecast.value) : 0;
+  const youY = avg !== null ? y(avg) : null;
   const combinedIndex =
     spec.umbrella === "computer-science"
       ? points.findIndex((row) => row.year >= COMBINED_CUTOFF_YEAR)
@@ -78,7 +100,11 @@ export function OutlookCutoffChart({
           viewBox={`0 0 ${width} ${height}`}
           className="h-auto min-w-full overflow-visible"
           role="img"
-          aria-label={`${spec.name} published cutoffs versus your ${round1(avg)}% winter-session average`}
+          aria-label={
+            avg === null
+              ? `${spec.name} published cutoffs and possible next-year line`
+              : `${spec.name} published cutoffs versus your ${round1(avg)}% winter-session average`
+          }
         >
           {ticks.map((mark) => (
             <g key={mark}>
@@ -95,9 +121,9 @@ export function OutlookCutoffChart({
               </text>
             </g>
           ))}
-          {points.map((_, index) => (
+          {axis.map((row, index) => (
             <line
-              key={`grid-${index}`}
+              key={`grid-${row.year}-${index}`}
               x1={x(index)}
               x2={x(index)}
               y1={padT}
@@ -126,24 +152,28 @@ export function OutlookCutoffChart({
               </text>
             </g>
           ) : null}
-          <line
-            x1={padL}
-            x2={width - padR}
-            y1={youY}
-            y2={youY}
-            stroke="#3d7a45"
-            strokeWidth="3"
-            strokeDasharray="8 6"
-            strokeLinecap="round"
-          />
-          <text
-            x={padL + 8}
-            y={youY + 18}
-            style={halo}
-            className="fill-[#2f6b38] text-[13px] font-black"
-          >
-            You {round1(avg)}%
-          </text>
+          {youY !== null ? (
+            <>
+              <line
+                x1={padL}
+                x2={width - padR}
+                y1={youY}
+                y2={youY}
+                stroke="#3d7a45"
+                strokeWidth="3"
+                strokeDasharray="8 6"
+                strokeLinecap="round"
+              />
+              <text
+                x={padL + 8}
+                y={youY + 18}
+                style={halo}
+                className="fill-[#2f6b38] text-[13px] font-black"
+              >
+                You {round1(avg ?? 0)}%
+              </text>
+            </>
+          ) : null}
           {cutoffLine.map((line, index) => (
             <polyline
               key={`cutoff-${index}`}
@@ -155,6 +185,18 @@ export function OutlookCutoffChart({
               points={line}
             />
           ))}
+          {forecast && lastNumericIndex >= 0 ? (
+            <line
+              x1={x(lastNumericIndex)}
+              x2={forecastX}
+              y1={y(points[lastNumericIndex].value as number)}
+              y2={forecastY}
+              stroke="#8a7018"
+              strokeWidth="3"
+              strokeDasharray="7 6"
+              strokeLinecap="round"
+            />
+          ) : null}
           {points.map((row, index) => {
             const cx = x(index);
             if (row.value === null) {
@@ -173,30 +215,45 @@ export function OutlookCutoffChart({
               );
             }
 
-            const gap = avg - row.value;
             const cutoffY = y(row.value);
             const last = index === points.length - 1 && points.length > 1;
             const first = index === 0 && points.length > 1;
             const sideLeft = last || index >= Math.ceil(points.length / 2);
             const stemX = cx + (sideLeft ? -12 : 12);
             const stemAnchor = sideLeft ? "end" : "start";
-            const aboveYou = row.value >= avg;
-            const labelY = aboveYou ? cutoffY - 14 : cutoffY + 18;
+            const aboveYou = youY !== null ? row.value >= (avg as number) : false;
+            const labelY = youY !== null && aboveYou ? cutoffY - 14 : cutoffY + 18;
             const labelAnchor = last ? "end" : first ? "start" : "middle";
             const labelX = last ? cx + 4 : first ? cx - 4 : cx;
+            const gap = avg !== null ? avg - row.value : null;
 
             return (
               <g key={row.year}>
-                <line
-                  x1={cx}
-                  x2={cx}
-                  y1={youY}
-                  y2={cutoffY}
-                  stroke={gap >= 0 ? "#2f6b38" : "#b42318"}
-                  strokeWidth="2.25"
-                />
+                {youY !== null && gap !== null ? (
+                  <>
+                    <line
+                      x1={cx}
+                      x2={cx}
+                      y1={youY}
+                      y2={cutoffY}
+                      stroke={gap >= 0 ? "#2f6b38" : "#b42318"}
+                      strokeWidth="2.25"
+                    />
+                    <circle cx={cx} cy={youY} r="4.5" fill="#3d7a45" stroke="#ffffff" strokeWidth="2" />
+                    <text
+                      x={stemX}
+                      y={(youY + cutoffY) / 2 + 4}
+                      textAnchor={stemAnchor}
+                      style={halo}
+                      className={`text-[12px] font-black ${
+                        gap >= 0 ? "fill-[#2f6b38]" : "fill-[#b42318]"
+                      }`}
+                    >
+                      {formatGap(gap)}
+                    </text>
+                  </>
+                ) : null}
                 <circle cx={cx} cy={cutoffY} r="6" fill="#142033" />
-                <circle cx={cx} cy={youY} r="4.5" fill="#3d7a45" stroke="#ffffff" strokeWidth="2" />
                 <text
                   x={labelX}
                   y={labelY}
@@ -206,21 +263,43 @@ export function OutlookCutoffChart({
                 >
                   {round1(row.value)}%
                 </text>
-                <text
-                  x={stemX}
-                  y={(youY + cutoffY) / 2 + 4}
-                  textAnchor={stemAnchor}
-                  style={halo}
-                  className={`text-[12px] font-black ${
-                    gap >= 0 ? "fill-[#2f6b38]" : "fill-[#b42318]"
-                  }`}
-                >
-                  {formatGap(gap)}
-                </text>
                 <YearLabel x={cx} y={height - 18} year={row.year} />
               </g>
             );
           })}
+          {forecast ? (
+            <g>
+              {youY !== null && avg !== null ? (
+                <line
+                  x1={forecastX}
+                  x2={forecastX}
+                  y1={youY}
+                  y2={forecastY}
+                  stroke={avg >= forecast.value ? "#2f6b38" : "#b42318"}
+                  strokeWidth="2.25"
+                  strokeDasharray="4 4"
+                />
+              ) : null}
+              <circle
+                cx={forecastX}
+                cy={forecastY}
+                r="6"
+                fill="#fff8dc"
+                stroke="#8a7018"
+                strokeWidth="2.5"
+              />
+              <text
+                x={forecastX + 4}
+                y={forecastY - 14}
+                textAnchor="end"
+                style={halo}
+                className="fill-[#8a7018] text-[12px] font-black"
+              >
+                possible {round1(forecast.value)}%
+              </text>
+              <YearLabel x={forecastX} y={height - 18} year={forecast.year} />
+            </g>
+          ) : null}
         </svg>
       </div>
       <div className="mt-2 flex flex-wrap gap-4 text-xs font-bold">
@@ -228,6 +307,12 @@ export function OutlookCutoffChart({
           <span className="h-2 w-6 rounded-full bg-[#142033]" />
           Published cutoff
         </span>
+        {forecast ? (
+          <span className="flex items-center gap-2">
+            <span className="h-0.5 w-6 border-t-[3px] border-dashed border-[#8a7018]" />
+            Possible {forecast.year} from trend
+          </span>
+        ) : null}
         <span className="flex items-center gap-2">
           <span className="h-0.5 w-6 border-t-[3px] border-dashed border-[#3d7a45]" />
           Your winter average
@@ -237,7 +322,8 @@ export function OutlookCutoffChart({
       </div>
       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
         The vertical scale is zoomed around these numbers so a 2–4 point gap is visible, not
-        flattened on a 0–100 axis. The line breaks on NF or suppressed years.
+        flattened on a 0–100 axis. The line breaks on NF or suppressed years. The gold dashed
+        point is a possible next-year cutoff from the published trend, not a UBC number.
       </p>
       <p className="mt-3 text-sm font-black leading-6 text-[#142033]">{cutoffMixNote(spec)}</p>
     </div>

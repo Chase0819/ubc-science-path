@@ -272,9 +272,9 @@ export default function Home() {
             </h2>
             <p className="mt-4 text-[15px] leading-7 text-[var(--muted)]">
               Some programs admit every eligible student. Others have filled at high averages.
-              Outlook checks eligibility from the planner first, then compares your sessional
-              average with published 2022–2026 lines. Rank the program you want first, and keep
-              two backups whose courses you also complete.
+              Outlook assumes you already took the required courses, then compares your
+              sessional average with published 2022–2026 cutoffs and a possible next-year line
+              from that same past trend. Rank the program you want first, and keep two backups.
             </p>
             <p className="mt-4 text-[15px] leading-7 text-[var(--muted)]">
               It is a local model, not an admission decision. Use it to plan, then confirm with
@@ -292,12 +292,8 @@ export default function Home() {
             <p className="text-sm font-medium text-[#c62828]">How to read it</p>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-[var(--muted)]">
               <li>
-                <strong className="text-[var(--ink)]">Blocked</strong> — missing eligibility
-                courses, so average does not matter yet.
-              </li>
-              <li>
-                <strong className="text-[var(--ink)]">Low</strong> — eligible, but below most
-                recent published cutoffs.
+                <strong className="text-[var(--ink)]">Low</strong> — below most recent published
+                cutoffs.
               </li>
               <li>
                 <strong className="text-[var(--ink)]">Medium</strong> — around the recent cutoff
