@@ -104,6 +104,91 @@ export function forecastCutoff(spec: Specialization): CutoffForecast | null {
   };
 }
 
+export function scoreChance(spec: Specialization, sessional: number): Chance {
+  if (spec.minSessional && sessional < spec.minSessional) return "low";
+  if (!spec.quota) return "high";
+
+  const forecast = forecastCutoff(spec);
+  const numeric = numericCutoffs(spec);
+  const lastNumeric = numeric[numeric.length - 1] ?? null;
+  const lastWasNf = [...spec.cutoffs].reverse().find((row) => row.value !== null)?.value === "NF";
+
+  if (numeric.length === 0 && (lastWasNf || spec.cutoffs.some((row) => row.value === "NF"))) {
+    return "high";
+  }
+  if (numeric.length === 0) return "medium";
+
+  const above = numeric.filter((row) => sessional + 1e-9 >= row.value).length;
+  const below = numeric.filter((row) => sessional < row.value).length;
+  return chanceFromHistoryAndTrend(
+    lastNumeric ? sessional - lastNumeric.value : null,
+    forecast ? sessional - forecast.value : null,
+    above,
+    below,
+    numeric.length,
+  );
+}
+
+export type Term2Goal = {
+  chance: Exclude<Chance, "low">;
+  winter: number;
+  term2: number;
+  already: boolean;
+  unreachable: boolean;
+};
+
+export function term2Needed(
+  term1: number,
+  term1Credits: number,
+  term2Credits: number,
+  winter: number,
+): number | null {
+  if (term1Credits <= 0 || term2Credits <= 0) return null;
+  return (winter * (term1Credits + term2Credits) - term1 * term1Credits) / term2Credits;
+}
+
+export function term2Goals(
+  spec: Specialization,
+  term1: number,
+  term1Credits: number,
+  term2Credits: number,
+): Term2Goal[] {
+  const lines = chanceThresholds(spec);
+  const goals: Term2Goal[] = [];
+  for (const chance of ["medium", "high"] as const) {
+    const winter = lines[chance];
+    if (winter === null) continue;
+    const raw = term2Needed(term1, term1Credits, term2Credits, winter);
+    if (raw === null) continue;
+    goals.push({
+      chance,
+      winter,
+      term2: Math.round(raw * 10) / 10,
+      already: raw <= 0,
+      unreachable: raw > 100,
+    });
+  }
+  return goals;
+}
+
+export function chanceThresholds(spec: Specialization): {
+  medium: number | null;
+  high: number | null;
+} {
+  let medium: number | null = null;
+  let high: number | null = null;
+  for (let tenths = 400; tenths <= 1000; tenths += 1) {
+    const value = tenths / 10;
+    const chance = scoreChance(spec, value);
+    if (medium === null && (chance === "medium" || chance === "high")) medium = value;
+    if (high === null && chance === "high") {
+      high = value;
+      break;
+    }
+  }
+  return { medium, high };
+}
+
 export function predictAdmission(options: {
   spec: Specialization;
   sessional: number;
@@ -116,6 +201,7 @@ export function predictAdmission(options: {
     text: "This is only based on past published cutoffs — not a UBC decision.",
     strong: true,
   };
+  const chance = scoreChance(spec, sessional);
 
   if (spec.minSessional && sessional < spec.minSessional) {
     return {
@@ -130,14 +216,11 @@ export function predictAdmission(options: {
     };
   }
 
-  const yearLines = [...spec.cutoffs].reverse();
   const numeric = numericCutoffs(spec);
   const lastNumeric = numeric[numeric.length - 1] ?? null;
   const above = numeric.filter((row) => sessional + 1e-9 >= row.value);
   const below = numeric.filter((row) => sessional < row.value);
-  const lastGap = lastNumeric ? sessional - lastNumeric.value : null;
-  const predictedGap = forecast ? sessional - forecast.value : null;
-  const lastWasNf = yearLines.find((row) => row.value !== null)?.value === "NF";
+  const lastWasNf = [...spec.cutoffs].reverse().find((row) => row.value !== null)?.value === "NF";
 
   if (!spec.quota) {
     return {
@@ -180,14 +263,6 @@ export function predictAdmission(options: {
       forecast,
     };
   }
-
-  const chance = chanceFromHistoryAndTrend(
-    lastGap,
-    predictedGap,
-    above.length,
-    below.length,
-    numeric.length,
-  );
   const lastBit = lastNumeric
     ? `including ${lastNumeric.year} at ${lastNumeric.value.toFixed(1)}%`
     : "the latest published year";
