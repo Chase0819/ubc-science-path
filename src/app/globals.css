@@ -604,3 +604,22 @@ html.tutorial-no-scroll body {
   filter: blur(12px);
   z-index: -1;
 }
+
+.planner-chill.report-chill::before {
+  background: #e4d4f4;
+  opacity: 0.55;
+}
+
+.planner-chill.report-chill::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: auto auto 8% -4rem;
+  height: 16rem;
+  width: 16rem;
+  border-radius: 999px;
+  background: #e4d4f4;
+  opacity: 0.35;
+  filter: blur(12px);
+  z-index: -1;
+}

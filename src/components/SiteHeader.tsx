@@ -9,6 +9,7 @@ const links = [
   { href: "/calculator", label: "Grade calculator" },
   { href: "/planner", label: "Course planner" },
   { href: "/outlook", label: "Major outlook" },
+  { href: "/report", label: "Report" },
 ];
 
 export function SiteHeader() {

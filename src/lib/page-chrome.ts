@@ -26,6 +26,15 @@ export function pageChrome(pathname: string) {
       ink: "#ffffff",
     };
   }
+  if (pathname.startsWith("/report")) {
+    return {
+      bar: "bg-[#e4d4f4] text-[#142033]",
+      hover: "hover:bg-black/10",
+      active: "bg-black/10",
+      rail: "#e4d4f4",
+      ink: "#142033",
+    };
+  }
   return {
     bar: "bg-[var(--navy)] text-white",
     hover: "hover:bg-white/10",

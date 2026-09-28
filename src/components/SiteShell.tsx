@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { UbcSideRails } from "@/components/UbcSideRails";
+import Link from "next/link";
 
 export function SiteShell({
   children,
@@ -21,6 +22,10 @@ export function SiteShell({
         >
           Faculty of Science
         </a>
+        .{" "}
+        <Link className="underline" href="/report">
+          Report a problem
+        </Link>
         .
       </footer>
     </div>
