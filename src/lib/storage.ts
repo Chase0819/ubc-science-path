@@ -143,3 +143,17 @@ export function saveTermPlan(specId: string, plan: TermPlan) {
   all[specId] = plan;
   localStorage.setItem(TERM_KEY, JSON.stringify(all));
 }
+
+export type TutorialId = "planner" | "calculator" | "outlook";
+
+const TUTORIAL_KEY = "usp.tutorial";
+
+export function loadTutorialHidden(id: TutorialId): boolean {
+  return readJson<Partial<Record<TutorialId, boolean>>>(TUTORIAL_KEY, {})[id] === true;
+}
+
+export function saveTutorialHidden(id: TutorialId, hidden: boolean) {
+  const all = readJson<Partial<Record<TutorialId, boolean>>>(TUTORIAL_KEY, {});
+  all[id] = hidden;
+  localStorage.setItem(TUTORIAL_KEY, JSON.stringify(all));
+}

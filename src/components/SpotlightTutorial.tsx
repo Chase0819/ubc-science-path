@@ -2,8 +2,13 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import {
+  loadTutorialHidden,
+  saveTutorialHidden,
+  type TutorialId,
+} from "@/lib/storage";
 
-const CARD_RESERVE = 268;
+const CARD_RESERVE = 310;
 
 export type SpotlightStep = {
   target: string;
@@ -11,7 +16,7 @@ export type SpotlightStep = {
   body: string;
 };
 
-type Accent = "gold" | "green";
+type Accent = "gold" | "green" | "red";
 
 const THEME: Record<
   Accent,
@@ -26,6 +31,11 @@ const THEME: Record<
     kicker: "text-[#3d7a45]",
     ring: "tutorial-loop-ring-green border-[#3d7a45]",
     next: "bg-[#c5e8c4]",
+  },
+  red: {
+    kicker: "text-[#c62828]",
+    ring: "tutorial-loop-ring-red border-[#c62828]",
+    next: "bg-[#f8d0d0]",
   },
 };
 
@@ -49,17 +59,21 @@ export function SpotlightTutorial({
   onClose,
   accent = "gold",
   cue,
+  id,
 }: {
   steps: readonly SpotlightStep[];
   onClose: () => void;
   accent?: Accent;
   cue?: (target: string) => ReactNode;
+  id: TutorialId;
 }) {
   const titleId = useId();
+  const hideId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const [step, setStep] = useState(0);
+  const [hidden, setHidden] = useState(() => loadTutorialHidden(id));
   const [hole, setHole] = useState<Hole | null>(null);
   const lockY = useRef<number | null>(null);
   const returnTop = useRef(false);
@@ -287,22 +301,41 @@ export function SpotlightTutorial({
           </div>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-2 border-t-2 border-[#142033] bg-white/70 px-4 py-3">
-          <button
-            type="button"
-            disabled={step === 0}
-            onClick={() => setStep((n) => Math.max(0, n - 1))}
-            className="rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033] disabled:opacity-35"
+        <div className="mt-3 border-t-2 border-[#142033] bg-white/70">
+          <label
+            htmlFor={hideId}
+            className="flex cursor-pointer items-center gap-2 px-4 pt-3 text-sm font-bold"
           >
-            Back
-          </button>
-          <button
-            type="button"
-            onClick={() => (last ? finish() : setStep((n) => n + 1))}
-            className={`rounded-full border-2 border-[#142033] ${theme.next} px-5 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033]`}
-          >
-            {last ? "Got it" : "Next"}
-          </button>
+            <input
+              id={hideId}
+              type="checkbox"
+              checked={hidden}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setHidden(next);
+                saveTutorialHidden(id, next);
+              }}
+              className="h-4 w-4 shrink-0 accent-[#142033]"
+            />
+            Do not show this again
+          </label>
+          <div className="flex items-center justify-between gap-2 px-4 py-3">
+            <button
+              type="button"
+              disabled={step === 0}
+              onClick={() => setStep((n) => Math.max(0, n - 1))}
+              className="rounded-full border-2 border-[#142033] bg-white px-4 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033] disabled:opacity-35"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={() => (last ? finish() : setStep((n) => n + 1))}
+              className={`rounded-full border-2 border-[#142033] ${theme.next} px-5 py-1.5 text-sm font-bold shadow-[2px_2px_0_#142033]`}
+            >
+              {last ? "Got it" : "Next"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

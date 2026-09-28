@@ -49,6 +49,7 @@ export function PlannerTutorial({ onClose }: { onClose: () => void }) {
   const [steps] = useState(stepsOnPage);
   return (
     <SpotlightTutorial
+      id="planner"
       steps={steps}
       onClose={onClose}
       accent="gold"

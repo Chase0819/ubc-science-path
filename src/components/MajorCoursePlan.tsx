@@ -10,7 +10,7 @@ import {
   type FirstYearPlan,
   type FirstYearRow,
 } from "@/lib/first-year-plans";
-import { loadApExams, saveApExams } from "@/lib/storage";
+import { loadApExams, loadTutorialHidden, saveApExams } from "@/lib/storage";
 import type { WinterAverage } from "@/lib/ubcgrades";
 import { AvgSticker } from "@/components/AvgSticker";
 import { PlannerTutorial } from "@/components/PlannerTutorial";
@@ -43,6 +43,7 @@ export function MajorCoursePlan({
 
   useEffect(() => {
     setTourOpen(false);
+    if (loadTutorialHidden("planner")) return;
     const wait = window.setTimeout(() => setTourOpen(true), 880);
     return () => window.clearTimeout(wait);
   }, [specId]);

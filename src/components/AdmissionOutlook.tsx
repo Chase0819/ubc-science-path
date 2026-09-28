@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { OutlookCutoffChart } from "@/components/OutlookCutoffChart";
+import { OutlookTutorial } from "@/components/OutlookTutorial";
 import {
   HISTORICAL_CUTOFFS_URL,
   forecastCutoff,
@@ -20,7 +21,7 @@ import {
   sanitizePercentInput,
 } from "@/lib/grades";
 import { SPECIALIZATIONS } from "@/lib/specializations";
-import { loadCalculator, loadPlanner, loadSessional } from "@/lib/storage";
+import { loadCalculator, loadPlanner, loadSessional, loadTutorialHidden } from "@/lib/storage";
 
 const chanceStyles: Record<Chance, string> = {
   low: "bg-[#f8d0d0]",
@@ -47,6 +48,8 @@ export function AdmissionOutlook() {
   const [term1Input, setTerm1Input] = useState("");
   const [term1CreditsInput, setTerm1CreditsInput] = useState("15");
   const [term2CreditsInput, setTerm2CreditsInput] = useState("15");
+  const [tourOpen, setTourOpen] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const planner = loadPlanner();
@@ -76,7 +79,15 @@ export function AdmissionOutlook() {
       setTerm1CreditsInput(String(Math.max(1, Math.round(term1.credits))));
     }
     if (term2Credits > 0) setTerm2CreditsInput(String(Math.max(1, Math.round(term2Credits))));
+    setReady(true);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (loadTutorialHidden("outlook")) return;
+    const wait = window.setTimeout(() => setTourOpen(true), 880);
+    return () => window.clearTimeout(wait);
+  }, [ready]);
 
   const spec = SPECIALIZATIONS.find((s) => s.id === specId) ?? SPECIALIZATIONS[0];
   const sessional = parsePercentInput(sessionalInput);
@@ -103,7 +114,21 @@ export function AdmissionOutlook() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-[#c62828]">Your chance</p>
+          <h2 className="mt-1 text-3xl font-bold tracking-tight">Major and winter average</h2>
+        </div>
+        <button
+          type="button"
+          onClick={() => setTourOpen(true)}
+          className="rounded-full border-2 border-[#142033] bg-[#f8d0d0] px-4 py-1.5 text-sm font-semibold shadow-[2px_2px_0_#142033]"
+        >
+          How this works
+        </button>
+      </div>
+
+      <div data-tutorial="inputs" className="grid gap-4 scroll-mt-8 md:grid-cols-2">
         <label className="rounded-[28px] border-2 border-[#142033] bg-white p-5 shadow-[4px_4px_0_#142033]">
           <span className="text-sm font-bold text-[var(--muted)]">Target specialization</span>
           <select
@@ -138,7 +163,10 @@ export function AdmissionOutlook() {
         </label>
       </div>
 
-      <section className="rounded-[28px] border-2 border-[#142033] bg-white p-5 shadow-[4px_4px_0_#142033] sm:p-6">
+      <section
+        data-tutorial="term2"
+        className="scroll-mt-8 rounded-[28px] border-2 border-[#142033] bg-white p-5 shadow-[4px_4px_0_#142033] sm:p-6"
+      >
         <p className="text-sm font-bold text-[#c62828]">Term 2 target</p>
         <h3 className="mt-1 text-2xl font-black tracking-tight">What Term 2 needs for a higher chance</h3>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
@@ -228,7 +256,8 @@ export function AdmissionOutlook() {
       </section>
 
       <section
-        className={`rounded-[28px] border-2 border-[#142033] p-6 shadow-[4px_4px_0_#142033] sm:p-7 ${
+        data-tutorial="chance"
+        className={`scroll-mt-8 rounded-[28px] border-2 border-[#142033] p-6 shadow-[4px_4px_0_#142033] sm:p-7 ${
           outlook ? chanceStyles[outlook.chance] : "bg-[#f4f1ea]"
         }`}
       >
@@ -247,7 +276,10 @@ export function AdmissionOutlook() {
         </p>
       </section>
 
-      <section className="rounded-[28px] border-2 border-[#142033] bg-white p-5 shadow-[4px_4px_0_#142033] sm:p-6">
+      <section
+        data-tutorial="chart"
+        className="scroll-mt-8 rounded-[28px] border-2 border-[#142033] bg-white p-5 shadow-[4px_4px_0_#142033] sm:p-6"
+      >
         <p className="text-sm font-bold text-[#c62828]">Cutoff history</p>
         <h3 className="mt-1 text-2xl font-black tracking-tight">You vs published cutoffs</h3>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
@@ -268,7 +300,10 @@ export function AdmissionOutlook() {
       </section>
 
       {outlook ? (
-      <section className="rounded-[28px] border-2 border-[#142033] bg-white p-5 shadow-[4px_4px_0_#142033] sm:p-6">
+      <section
+        data-tutorial="why"
+        className="scroll-mt-8 rounded-[28px] border-2 border-[#142033] bg-white p-5 shadow-[4px_4px_0_#142033] sm:p-6"
+      >
         <h3 className="text-2xl font-black tracking-tight">
           Why this reads {chanceWord[outlook.chance]}
         </h3>
@@ -284,7 +319,10 @@ export function AdmissionOutlook() {
       </section>
       ) : null}
 
-      <section className="rounded-[28px] border-2 border-[#142033] bg-[#f4f1ea] p-5 shadow-[4px_4px_0_#142033] sm:p-6">
+      <section
+        data-tutorial="read"
+        className="scroll-mt-8 rounded-[28px] border-2 border-[#142033] bg-[#f4f1ea] p-5 shadow-[4px_4px_0_#142033] sm:p-6"
+      >
         <h3 className="text-2xl font-black tracking-tight">How to read this</h3>
         <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
           Outlook assumes the required courses are already done. Low, Medium, and High only
@@ -300,6 +338,7 @@ export function AdmissionOutlook() {
           Information (through 2026).
         </p>
       </section>
+      {tourOpen ? <OutlookTutorial onClose={() => setTourOpen(false)} /> : null}
     </div>
   );
 }

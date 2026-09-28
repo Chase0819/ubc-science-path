@@ -37,5 +37,5 @@ function stepsOnPage() {
 
 export function CalculatorTutorial({ onClose }: { onClose: () => void }) {
   const [steps] = useState(stepsOnPage);
-  return <SpotlightTutorial steps={steps} onClose={onClose} accent="green" />;
+  return <SpotlightTutorial id="calculator" steps={steps} onClose={onClose} accent="green" />;
 }

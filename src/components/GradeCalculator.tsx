@@ -20,7 +20,13 @@ import {
   round1,
   round2,
 } from "@/lib/grades";
-import { saveCalculator, saveSessional, loadCalculator, newCalcId } from "@/lib/storage";
+import {
+  saveCalculator,
+  saveSessional,
+  loadCalculator,
+  loadTutorialHidden,
+  newCalcId,
+} from "@/lib/storage";
 import type {
   CalcTerm,
   CalculatorCourse,
@@ -117,6 +123,7 @@ export function GradeCalculator() {
 
   useEffect(() => {
     if (!ready) return;
+    if (loadTutorialHidden("calculator")) return;
     const wait = window.setTimeout(() => setTourOpen(true), 880);
     return () => window.clearTimeout(wait);
   }, [ready]);
